@@ -4,7 +4,7 @@ import { recordResponse, updateSessionProgress } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 
 export default function CreativeProblemSolver() {
-  const { sessionId, updateTraits } = useSession()
+  const { sessionId, updateTraits, advanceFlow } = useSession()
   const [text, setText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
@@ -13,7 +13,8 @@ export default function CreativeProblemSolver() {
     setIsSubmitting(true)
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+      const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+      const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
       const response = await fetch(`${API_URL}/score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,12 +36,12 @@ export default function CreativeProblemSolver() {
         await updateSessionProgress(sessionId, 'creative_problem_solver')
       }
       
-      navigate('/data-detective')
+      advanceFlow(navigate)
     } catch (e) {
       console.error(e)
       const fallback = { creativity: 0.5, flexibility: 0.5, communication: 0.5, originality: 0.5 }
       updateTraits(fallback)
-      navigate('/data-detective')
+      advanceFlow(navigate)
     } finally {
       setIsSubmitting(false)
     }

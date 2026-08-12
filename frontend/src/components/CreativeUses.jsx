@@ -5,7 +5,7 @@ import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 
 export default function CreativeUses() {
-  const { sessionId, updateTraits, traits } = useSession()
+  const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
   
   const [ideas, setIdeas] = useState([])
@@ -40,7 +40,8 @@ export default function CreativeUses() {
 
   const submitTelemetry = async () => {
     setCompleted(true)
-    const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+    const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+    const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
     
     // Base score on quantity of ideas generated within 60s
     // Real ML would use Gemini to judge uniqueness, but for MVP we use count + length
@@ -86,7 +87,7 @@ export default function CreativeUses() {
     }
     
     setTimeout(() => {
-      navigate('/data-detective')
+      advanceFlow(navigate)
     }, 2000)
   }
 

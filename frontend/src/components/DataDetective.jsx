@@ -5,7 +5,7 @@ import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 
 export default function DataDetective() {
-  const { sessionId, updateTraits, traits } = useSession()
+  const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
   
   const [startTs, setStartTs] = useState(Date.now())
@@ -54,7 +54,8 @@ export default function DataDetective() {
     }
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+      const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+      const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
       const response = await fetch(`${API_URL}/submit_activity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,13 +87,13 @@ export default function DataDetective() {
 
     if (isCorrect) {
       await submitTelemetry(true)
-      navigate('/career-simulation')
+      advanceFlow(navigate)
     } else {
       setAttempts(a => a + 1)
       setWrongAnswers(prev => [...prev, selected])
       if (attempts >= 2) {
         await submitTelemetry(false)
-        navigate('/career-simulation')
+        advanceFlow(navigate)
       }
     }
   }

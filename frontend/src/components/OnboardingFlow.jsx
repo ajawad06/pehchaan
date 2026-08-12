@@ -28,7 +28,7 @@ const AGE_GROUPS = [
 ]
 
 export default function OnboardingFlow() {
-  const { sessionId, updateTraits } = useSession()
+  const { sessionId, updateTraits, generateFlow } = useSession()
   const navigate = useNavigate()
   
   const [step, setStep] = useState(0)
@@ -81,7 +81,8 @@ export default function OnboardingFlow() {
         })
       }
       
-      navigate('/pattern-hunter')
+      const queue = generateFlow(interestProfile)
+      navigate(queue[0])
     }
   }
 

@@ -25,7 +25,7 @@ const SCENARIOS = [
 ]
 
 export default function DecisionLab() {
-  const { sessionId, updateTraits, traits } = useSession()
+  const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const [current, setCurrent] = useState(0)
   const navigate = useNavigate()
 
@@ -46,7 +46,7 @@ export default function DecisionLab() {
       if (sessionId) {
         await updateSessionProgress(sessionId, 'decision_lab')
       }
-      navigate('/creative-problem-solver')
+      advanceFlow(navigate)
     }
   }
 

@@ -4,7 +4,7 @@ import { recordResponse, updateSessionProgress, saveTraitVector } from '../servi
 import { useNavigate } from 'react-router-dom'
 
 export default function CareerSimulation() {
-  const { sessionId, updateTraits, traits } = useSession()
+  const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const [text, setText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
@@ -13,7 +13,8 @@ export default function CareerSimulation() {
     setIsSubmitting(true)
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+      const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+      const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
       const response = await fetch(`${API_URL}/score`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,7 +41,7 @@ export default function CareerSimulation() {
         await saveTraitVector(sessionId, newTraits)
       }
       
-      navigate('/results')
+      advanceFlow(navigate)
     } catch (e) {
       console.error(e)
       const fallback = { domain_exposure: 0.5 }
@@ -49,10 +50,24 @@ export default function CareerSimulation() {
       if (sessionId) {
         await saveTraitVector(sessionId, newTraits)
       }
-      navigate('/results')
+      advanceFlow(navigate)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const topInterest = traits?.interests 
+    ? Object.keys(traits.interests).reduce((a, b) => traits.interests[a] > traits.interests[b] ? a : b)
+    : 'your top career field';
+
+  let simulationPrompt = `Describe a typical day in the life of someone working in ${topInterest} based on what you currently know. What tasks do they perform?`;
+  
+  if (topInterest === 'technology' || topInterest === 'science') {
+    simulationPrompt = `You have been assigned to solve a major technical problem in ${topInterest}. Walk me through the first 3 steps you would take to debug or analyze the issue.`;
+  } else if (topInterest === 'arts' || topInterest === 'architecture') {
+    simulationPrompt = `You have a blank canvas and a new client requesting a design in ${topInterest}. How do you begin your creative process to ensure it meets their needs?`;
+  } else if (topInterest === 'business' || topInterest === 'finance') {
+    simulationPrompt = `Your company in the ${topInterest} sector is facing a sudden 15% drop in revenue. What immediate actions do you take to stabilize the situation?`;
   }
 
   return (
@@ -64,9 +79,9 @@ export default function CareerSimulation() {
       </div>
 
       <div className="flex flex-col items-center justify-center p-10 bg-soft-white rounded-[32px] shadow-2xl border border-border-glass max-w-2xl w-full mx-auto">
-        <h2 className="text-3xl font-medium tracking-tight mb-6">Career Simulation</h2>
+        <h2 className="text-3xl font-medium tracking-tight mb-6 capitalize">{topInterest} Simulation</h2>
         <p className="text-lg mb-10 text-center text-text-muted leading-relaxed">
-          Describe a typical day in the life of someone working in your top career field based on what you currently know. What tasks do they perform?
+          {simulationPrompt}
         </p>
         
         <textarea 

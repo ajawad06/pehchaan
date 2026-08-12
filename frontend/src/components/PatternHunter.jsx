@@ -40,7 +40,7 @@ const QUESTIONS = [
 ]
 
 export default function PatternHunter() {
-  const { sessionId, updateTraits, traits } = useSession()
+  const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
   
   const [current, setCurrent] = useState(0)
@@ -123,7 +123,7 @@ export default function PatternHunter() {
       if (current + 1 < QUESTIONS.length) {
         setCurrent(c => c + 1)
       } else {
-        navigate('/decision-lab')
+        advanceFlow(navigate)
       }
     } else {
       setAttempts(a => a + 1)
@@ -134,7 +134,7 @@ export default function PatternHunter() {
         if (current + 1 < QUESTIONS.length) {
           setCurrent(c => c + 1)
         } else {
-          navigate('/decision-lab')
+          advanceFlow(navigate)
         }
       }
     }

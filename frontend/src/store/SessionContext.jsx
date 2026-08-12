@@ -20,6 +20,9 @@ export const SessionProvider = ({ children }) => {
     leadership: 0
   })
 
+  const [activityQueue, setActivityQueue] = useState([])
+  const [currentActivityIndex, setCurrentActivityIndex] = useState(0)
+
   useEffect(() => {
     async function initUser() {
       try {
@@ -39,8 +42,52 @@ export const SessionProvider = ({ children }) => {
     setTraits(prev => ({ ...prev, ...newTraits }))
   }
 
+  const generateFlow = (interests) => {
+    // Base core activities everyone gets
+    let queue = ['/pattern-hunter', '/decision-lab']
+    
+    // Dynamically add activities based on interests
+    const interestList = Object.keys(interests)
+    
+    if (interestList.includes('technology') || interestList.includes('science')) {
+      queue.push('/data-detective')
+      queue.push('/numerical-reasoning')
+    }
+    
+    if (interestList.includes('arts') || interestList.includes('architecture')) {
+      queue.push('/visual-spatial')
+      queue.push('/creative-uses')
+    }
+    
+    if (interestList.includes('business') || interestList.includes('psychology')) {
+      queue.push('/creative-problem-solver')
+      queue.push('/decision-lab') // Double down on decision making
+    }
+
+    // De-duplicate if needed, though they shouldn't overlap much
+    queue = [...new Set(queue)]
+    
+    // Everyone ends with a field-specific Career Simulation
+    queue.push('/career-simulation')
+    queue.push('/results')
+    
+    setActivityQueue(queue)
+    setCurrentActivityIndex(0)
+    return queue
+  }
+
+  const advanceFlow = (navigate) => {
+    if (currentActivityIndex < activityQueue.length - 1) {
+      const nextIndex = currentActivityIndex + 1
+      setCurrentActivityIndex(nextIndex)
+      navigate(activityQueue[nextIndex])
+    } else {
+      navigate('/results')
+    }
+  }
+
   return (
-    <SessionContext.Provider value={{ user, sessionId, traits, updateTraits }}>
+    <SessionContext.Provider value={{ user, sessionId, traits, updateTraits, generateFlow, advanceFlow }}>
       {children}
     </SessionContext.Provider>
   )

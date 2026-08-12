@@ -9,6 +9,9 @@ import DataDetective from './components/DataDetective'
 import CareerSimulation from './components/CareerSimulation'
 import ResultsScreen from './components/ResultsScreen'
 import LandingPage from './components/LandingPage'
+import DecisionLab from './components/DecisionLab'
+import NumericalReasoning from './components/NumericalReasoning'
+import VisualSpatial from './components/VisualSpatial'
 import { useOfflineSync } from './services/offlineQueue'
 
 import './index.css'
@@ -28,10 +31,13 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/start" element={<OnboardingFlow />} />
-              <Route path="/pattern-hunter" element={<PatternHunter />} />
-              <Route path="/decision-lab" element={<CreativeUses />} />
-              <Route path="/creative-problem-solver" element={<CreativeProblemSolver />} />
-              <Route path="/data-detective" element={<DataDetective />} />
+          <Route path="/pattern-hunter" element={<PatternHunter />} />
+          <Route path="/decision-lab" element={<DecisionLab />} />
+          <Route path="/creative-uses" element={<CreativeUses />} />
+          <Route path="/creative-problem-solver" element={<CreativeProblemSolver />} />
+          <Route path="/data-detective" element={<DataDetective />} />
+          <Route path="/numerical-reasoning" element={<NumericalReasoning />} />
+          <Route path="/visual-spatial" element={<VisualSpatial />} />
           <Route path="/career-simulation" element={<CareerSimulation />} />
           <Route path="/results" element={<ResultsScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />
