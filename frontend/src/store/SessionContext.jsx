@@ -43,10 +43,19 @@ export const SessionProvider = ({ children }) => {
   }
 
   const generateFlow = (interests) => {
-    // Base core activities everyone gets
-    let queue = ['/pattern-hunter', '/decision-lab']
+    // 1. Base core activities EVERYONE gets (Generic ML Features)
+    let queue = [
+      '/personality',           // Big Five 
+      '/pattern-hunter',        // Pattern Recognition (IQ)
+      '/decision-lab',          // Decision Making (Trade-offs)
+      '/memory-game',           // Working Memory
+      '/visual-spatial',        // Spatial Reasoning
+      '/attention-game',        // Processing Speed
+      '/learning-agility',      // Learning Ability
+      '/creative-uses'          // Creativity
+    ]
     
-    // Dynamically add activities based on interests
+    // 2. Dynamically add domain-specific activities based on interests
     const interestList = Object.keys(interests)
     
     if (interestList.includes('technology') || interestList.includes('science')) {
@@ -54,20 +63,14 @@ export const SessionProvider = ({ children }) => {
       queue.push('/numerical-reasoning')
     }
     
-    if (interestList.includes('arts') || interestList.includes('architecture')) {
-      queue.push('/visual-spatial')
-      queue.push('/creative-uses')
-    }
-    
     if (interestList.includes('business') || interestList.includes('psychology')) {
       queue.push('/creative-problem-solver')
-      queue.push('/decision-lab') // Double down on decision making
     }
 
-    // De-duplicate if needed, though they shouldn't overlap much
+    // De-duplicate
     queue = [...new Set(queue)]
     
-    // Everyone ends with a field-specific Career Simulation
+    // 3. Everyone ends with a field-specific Career Simulation
     queue.push('/career-simulation')
     queue.push('/results')
     

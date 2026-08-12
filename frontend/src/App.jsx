@@ -12,6 +12,10 @@ import LandingPage from './components/LandingPage'
 import DecisionLab from './components/DecisionLab'
 import NumericalReasoning from './components/NumericalReasoning'
 import VisualSpatial from './components/VisualSpatial'
+import PersonalityAssessment from './components/PersonalityAssessment'
+import MemoryGame from './components/MemoryGame'
+import AttentionGame from './components/AttentionGame'
+import LearningAgility from './components/LearningAgility'
 import { useOfflineSync } from './services/offlineQueue'
 
 import './index.css'
@@ -31,6 +35,10 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/start" element={<OnboardingFlow />} />
+          <Route path="/personality" element={<PersonalityAssessment />} />
+          <Route path="/memory-game" element={<MemoryGame />} />
+          <Route path="/attention-game" element={<AttentionGame />} />
+          <Route path="/learning-agility" element={<LearningAgility />} />
           <Route path="/pattern-hunter" element={<PatternHunter />} />
           <Route path="/decision-lab" element={<DecisionLab />} />
           <Route path="/creative-uses" element={<CreativeUses />} />
