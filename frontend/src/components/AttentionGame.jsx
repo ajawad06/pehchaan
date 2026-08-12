@@ -93,7 +93,8 @@ export default function AttentionGame() {
       const data = await response.json()
       
       if (data.estimated_skill_delta) {
-        updateTraits({ logical_reasoning: 50 + (data.estimated_skill_delta * 10) }) // Proxy for attention MVP
+        const newSpeed = Math.max(0, Math.min(100, 50 + (data.estimated_skill_delta * 10)))
+        updateTraits({ processing_speed: newSpeed })
       }
     } catch (error) {
       console.error("Failed to send telemetry:", error)

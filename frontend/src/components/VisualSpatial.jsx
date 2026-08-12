@@ -72,8 +72,8 @@ export default function VisualSpatial() {
       const data = await response.json()
       
       if (data.estimated_skill_delta) {
-        const newScore = Math.max(0, Math.min(100, (traits.logical_reasoning || 50) + (data.estimated_skill_delta * 10)))
-        updateTraits({ logical_reasoning: newScore })
+        const newScore = Math.max(0, Math.min(100, (traits.spatial_reasoning || 50) + (data.estimated_skill_delta * 10)))
+        updateTraits({ spatial_reasoning: newScore })
       }
     } catch (error) {
       console.error("Failed to send telemetry to backend:", error)

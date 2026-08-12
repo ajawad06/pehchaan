@@ -101,7 +101,7 @@ def predict(request: PredictRequest):
     # Return top 5
     return PredictResponse(
         ranked_clusters=results[:5],
-        model_version="rf_v1"
+        model_version="rf_v2"
     )
 
 @app.post("/score")

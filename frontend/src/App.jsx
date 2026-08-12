@@ -16,6 +16,7 @@ import PersonalityAssessment from './components/PersonalityAssessment'
 import MemoryGame from './components/MemoryGame'
 import AttentionGame from './components/AttentionGame'
 import LearningAgility from './components/LearningAgility'
+import InstinctSwipe from './components/InstinctSwipe'
 import { useOfflineSync } from './services/offlineQueue'
 
 import './index.css'
@@ -36,6 +37,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/start" element={<OnboardingFlow />} />
           <Route path="/personality" element={<PersonalityAssessment />} />
+          <Route path="/instinct-swipe" element={<InstinctSwipe />} />
           <Route path="/memory-game" element={<MemoryGame />} />
           <Route path="/attention-game" element={<AttentionGame />} />
           <Route path="/learning-agility" element={<LearningAgility />} />

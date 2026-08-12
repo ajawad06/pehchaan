@@ -9,15 +9,36 @@ export const useSession = () => useContext(SessionContext)
 export const SessionProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [sessionId, setSessionId] = useState(null)
+  const [ageGroup, setAgeGroup] = useState('15-17') // Real age band set in onboarding
   const [traits, setTraits] = useState({
+    // RIASEC (from InstinctSwipe)
     R: 0, I: 0, A: 0, S: 0, E: 0, C: 0,
-    decisiveness: 0,
-    numerical_reasoning: 0,
-    logical_reasoning: 0,
+    // Cognitive (each activity owns one key, no collisions)
+    logical_reasoning: 0,       // PatternHunter
+    numerical_reasoning: 0,     // NumericalReasoning (averaged with DataDetective)
+    spatial_reasoning: 0,       // VisualSpatial
+    processing_speed: 0,        // AttentionGame
+    working_memory: 0,          // MemoryGame
+    learning_agility: 0,        // LearningAgility
+    creativity: 0,              // CreativeUses
+    analytical_thinking: 0,     // DataDetective derived
+    // Behavioral (from DecisionLab)
     risk_tolerance: 0,
     decision_making: 0,
     planning: 0,
-    leadership: 0
+    leadership: 0,
+    // Personality (from PersonalityAssessment - Big Five, 0-100)
+    openness: 0,
+    conscientiousness: 0,
+    extraversion: 0,
+    agreeableness: 0,
+    neuroticism: 0,
+    // Misc
+    communication: 0,
+    domain_exposure: 0,
+    // Onboarding
+    interests: {},
+    career_values: []
   })
 
   const [activityQueue, setActivityQueue] = useState([])
@@ -28,7 +49,7 @@ export const SessionProvider = ({ children }) => {
       try {
         const u = await signIn()
         setUser(u)
-        await createUserRecord(u.uid, '15-17') // Default for MVP
+        await createUserRecord(u.uid, ageGroup)
         const sId = await createSession(u.uid)
         setSessionId(sId)
       } catch (err) {
@@ -46,6 +67,7 @@ export const SessionProvider = ({ children }) => {
     // 1. Base core activities EVERYONE gets (Generic ML Features)
     let queue = [
       '/personality',           // Big Five 
+      '/instinct-swipe',        // RIASEC — must feed the RF model
       '/pattern-hunter',        // Pattern Recognition (IQ)
       '/decision-lab',          // Decision Making (Trade-offs)
       '/memory-game',           // Working Memory
@@ -90,7 +112,7 @@ export const SessionProvider = ({ children }) => {
   }
 
   return (
-    <SessionContext.Provider value={{ user, sessionId, traits, updateTraits, generateFlow, advanceFlow }}>
+    <SessionContext.Provider value={{ user, sessionId, traits, updateTraits, generateFlow, advanceFlow, ageGroup, setAgeGroup }}>
       {children}
     </SessionContext.Provider>
   )

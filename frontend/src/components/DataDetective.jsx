@@ -70,8 +70,18 @@ export default function DataDetective() {
       const data = await response.json()
       
       if (data.estimated_skill_delta) {
-        const newScore = Math.max(0, Math.min(100, (traits.numerical_reasoning || 50) + (data.estimated_skill_delta * 10)))
-        updateTraits({ numerical_reasoning: newScore })
+        const delta = data.estimated_skill_delta * 10
+        // DataDetective owns analytical_thinking
+        const analyticalScore = Math.max(0, Math.min(100, 50 + delta))
+        // Average numerical_reasoning instead of overwriting it (shared signal)
+        const avgNumerical = ((traits.numerical_reasoning || 50) + Math.max(0, Math.min(100, (traits.numerical_reasoning || 50) + delta))) / 2
+        // Derive analytical_thinking from accuracy + latency
+        const normalizedLatency = Math.min(latencySec / 120, 1.0)
+        const analyticalFromTelemetry = (finalAccuracy * 0.7) + ((1 - normalizedLatency) * 0.3)
+        updateTraits({ 
+          analytical_thinking: Math.round(analyticalFromTelemetry * 100),
+          numerical_reasoning: Math.round(avgNumerical)
+        })
       }
     } catch (error) {
       console.error("Failed to send telemetry to backend:", error)

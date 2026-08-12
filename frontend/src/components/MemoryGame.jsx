@@ -80,8 +80,8 @@ export default function MemoryGame() {
       const data = await response.json()
       
       if (data.estimated_skill_delta) {
-        const newScore = Math.max(0, Math.min(100, (traits.logical_reasoning || 50) + (data.estimated_skill_delta * 10)))
-        updateTraits({ logical_reasoning: newScore }) // Using logical_reasoning as proxy for working memory in MVP
+        const newScore = Math.max(0, Math.min(100, (traits.working_memory || 50) + (data.estimated_skill_delta * 10)))
+        updateTraits({ working_memory: newScore })
       }
     } catch (error) {
       console.error("Failed to send telemetry:", error)

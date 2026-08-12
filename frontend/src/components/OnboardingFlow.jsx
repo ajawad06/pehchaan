@@ -28,7 +28,7 @@ const AGE_GROUPS = [
 ]
 
 export default function OnboardingFlow() {
-  const { sessionId, updateTraits, generateFlow } = useSession()
+  const { sessionId, updateTraits, generateFlow, setAgeGroup } = useSession()
   const navigate = useNavigate()
   
   const [step, setStep] = useState(0)
@@ -55,6 +55,7 @@ export default function OnboardingFlow() {
   const handleNext = async () => {
     if (step === 0) {
       if (!ageGroup) return alert('Please select your age group!')
+      setAgeGroup(ageGroup) // Thread real age to context (fixes hardcoded '15-17' in SessionContext)
       setStep(1)
     } else if (step === 1) {
       if (selectedInterests.length === 0) return alert('Select at least 1 interest!')
