@@ -13,7 +13,8 @@ export default function ResultsScreen() {
   useEffect(() => {
     async function fetchPrediction() {
       try {
-        const response = await fetch('http://127.0.0.1:8000/predict', {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+        const response = await fetch(`${API_URL}/predict`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ trait_vector: traits })
@@ -27,7 +28,8 @@ export default function ResultsScreen() {
         }
         
         try {
-          const expRes = await fetch('http://127.0.0.1:8000/explain', {
+          const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+          const expRes = await fetch(`${API_URL}/explain`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
