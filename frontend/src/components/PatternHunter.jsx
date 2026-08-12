@@ -116,27 +116,48 @@ export default function PatternHunter() {
   const handleAnswer = async (selected) => {
     const q = QUESTIONS[current]
     const isCorrect = selected === q.answer
+    const latencySec = (Date.now() - startTs) / 1000
 
-    if (isCorrect) {
-      await submitTelemetry(true)
-      
-      if (current + 1 < QUESTIONS.length) {
-        setCurrent(c => c + 1)
-      } else {
-        advanceFlow(navigate)
-      }
-    } else {
-      setAttempts(a => a + 1)
-      setWrongAnswers(prev => [...prev, selected])
-      // If they fail 3 times, auto-advance and log failure
-      if (attempts >= 2) {
-        await submitTelemetry(false)
-        if (current + 1 < QUESTIONS.length) {
-          setCurrent(c => c + 1)
-        } else {
-          advanceFlow(navigate)
+    // Record telemetry immediately with whatever was chosen — never block progress
+    const telemetry = {
+      response_time_sec: latencySec,
+      hints_used: hintsUsed,
+      accuracy: isCorrect ? Math.max(1.0 - (attempts * 0.3), 0.2) : 0.0,
+      attempts: attempts + 1,
+      completed: true,
+      quit: false,
+      selected_answer: selected,
+      correct_answer: q.answer,
+      was_correct: isCorrect
+    }
+
+    // Fire-and-forget telemetry — do NOT await so it never blocks
+    ;(async () => {
+      try {
+        const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+        const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
+        const res = await fetch(`${API_URL}/submit_activity`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: sessionId || 'anonymous', activity_id: 'pattern_hunter', difficulty_level: 3, telemetry })
+        })
+        const data = await res.json()
+        if (data.estimated_skill_delta) {
+          const traitName = q.type === 'spatial_reasoning' ? 'spatial_reasoning' : 'logical_reasoning'
+          const newScore = Math.max(0, Math.min(100, (traits[traitName] || 50) + (data.estimated_skill_delta * 10)))
+          updateTraits({ [traitName]: newScore })
         }
-      }
+      } catch (e) { console.warn('Telemetry send failed silently:', e) }
+      if (sessionId) await recordResponse(sessionId, `pattern_hunter_q${current+1}`, telemetry)
+    })()
+
+    setAttempts(a => a + 1)
+
+    // Always advance to next question
+    if (current + 1 < QUESTIONS.length) {
+      setCurrent(c => c + 1)
+    } else {
+      advanceFlow(navigate)
     }
   }
 
@@ -174,23 +195,15 @@ export default function PatternHunter() {
         <p className="text-2xl mb-10 font-medium leading-relaxed">{q.text}</p>
         
         <div className="w-full space-y-3 mb-8">
-          {q.options.map(opt => {
-            const isWrong = wrongAnswers.includes(opt)
-            return (
-              <button 
-                key={opt}
-                onClick={() => handleAnswer(opt)}
-                disabled={isWrong}
-                className={`w-full py-4 px-6 text-left border rounded-2xl transition-all font-medium ${
-                  isWrong 
-                    ? 'border-red-500/20 bg-red-500/5 text-red-500/50 cursor-not-allowed'
-                    : 'border-green-primary/10 bg-ivory hover:bg-green-primary hover:text-ivory shadow-sm'
-                }`}
-              >
-                {opt}
-              </button>
-            )
-          })}
+          {q.options.map(opt => (
+            <button 
+              key={opt}
+              onClick={() => handleAnswer(opt)}
+              className="w-full py-4 px-6 text-left border rounded-2xl transition-all font-medium border-green-primary/10 bg-ivory hover:bg-green-primary hover:text-ivory shadow-sm"
+            >
+              {opt}
+            </button>
+          ))}
         </div>
 
         <div className="flex justify-between items-center mt-8 pt-6 border-t border-green-primary/10">

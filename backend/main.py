@@ -70,6 +70,8 @@ class ExplainRequest(BaseModel):
     ranked_clusters: List[ClusterConfidence]
     language: str
     age_band: str
+    trait_vector: Dict[str, float] = {}   # Full 12-feature RIASEC+cognitive vector
+    big_five: Dict[str, float] = {}       # Big Five personality scores (0-100)
 
 class ExplainResponse(BaseModel):
     explanations: Dict[str, str]
@@ -153,48 +155,111 @@ def score(request: ScoreRequest):
 @app.post("/explain")
 def explain(request: ExplainRequest):
     fallback_explanations = {}
-    
     for cluster in request.ranked_clusters:
-        fallback_explanations[cluster.cluster_id] = f"Your trait profile shows alignment with the {cluster.cluster_id} field based on our offline model."
-        
+        fallback_explanations[cluster.cluster_id] = (
+            f"Your trait profile aligns with {cluster.cluster_id.replace('_', ' ').title()} "
+            f"with a model confidence of {round(cluster.confidence * 100)}%. "
+            f"This field matches the combination of interests, cognitive strengths, and behavioral tendencies you demonstrated."
+        )
+    fallback = ExplainResponse(explanations=fallback_explanations)
+
     if not gemini_client:
-        return ExplainResponse(explanations=fallback_explanations)
-        
-    prompt = f"""
-    You are a career guidance counselor for a {request.age_band} year old.
-    Language: {request.language}
-    
-    The ML model has assigned the following confidence scores to these career clusters:
-    """
-    for cluster in request.ranked_clusters:
-        prompt += f"- {cluster.cluster_id}: {cluster.confidence}\n"
-        
-    prompt += """
-    Write a short, encouraging 2-sentence explanation for EACH cluster explaining why it might be a good fit based purely on these numeric scores. 
-    Do NOT suggest that you made this decision, attribute it to the user's trait profile.
-    Return ONLY a valid JSON object where keys are the exact cluster_ids and values are the explanation text strings.
-    """
-    
+        return fallback
+
+    # Build a richly structured prompt from the numeric data
+    cluster_lines = "\n".join(
+        [f"  - {c.cluster_id.replace('_', ' ').title()}: {round(c.confidence * 100, 1)}% model confidence"
+         for c in request.ranked_clusters]
+    )
+
+    # Build optional sections for richer prompt
+    riasec_lines = ""
+    if request.trait_vector:
+        riasec_map = {"R": "Realistic", "I": "Investigative", "A": "Artistic", "S": "Social", "E": "Enterprising", "C": "Conventional"}
+        riasec_parts = [f"{riasec_map.get(k, k)}: {round(v * 100)}%" for k, v in request.trait_vector.items() if k in riasec_map]
+        cognitive_parts = [f"{k.replace('_', ' ').title()}: {round(v * 100)}%" for k, v in request.trait_vector.items() if k not in riasec_map]
+        if riasec_parts:
+            riasec_lines += f"\nRIASEC Interest Profile: {', '.join(riasec_parts)}"
+        if cognitive_parts:
+            riasec_lines += f"\nCognitive Scores (0-1 normalized): {', '.join(cognitive_parts)}"
+
+    big_five_lines = ""
+    if request.big_five:
+        bf_map = {"openness": "Openness", "conscientiousness": "Conscientiousness", "extraversion": "Extraversion", "agreeableness": "Agreeableness", "neuroticism": "Neuroticism (Emotional Instability)"}
+        bf_parts = [f"{bf_map.get(k, k)}: {round(v)}%" for k, v in request.big_five.items() if k in bf_map]
+        if bf_parts:
+            big_five_lines = f"\nBig Five Personality (0-100 scale): {', '.join(bf_parts)}"
+
+    prompt = f"""You are a senior career counselor and psychometrician for Pehchaan, a career-discovery platform for Pakistani students aged 14–24.
+
+A student has just completed a comprehensive, multi-stage behavioral and cognitive assessment. Below are their results from the RandomForest ML model, trained on RIASEC psychometric theory. Your task is to write a detailed, warm, and genuinely insightful career analysis FOR THIS SPECIFIC STUDENT based purely on the numeric data below.
+
+---
+STUDENT PROFILE
+Age Band: {request.age_band}{riasec_lines}{big_five_lines}
+
+ML CAREER PREDICTIONS (RandomForest model, confidence scores):
+{cluster_lines}
+
+---
+INSTRUCTIONS:
+1. For EACH career cluster listed above, write a DETAILED 3–4 sentence explanation that:
+   - Says specifically WHY their profile fits this field (reference the confidence score explicitly)
+   - Compares this option against the other options (which is stronger fit and why)
+   - Identifies what specific traits or RIASEC dimensions drove this prediction
+   - Mentions one concrete role in Pakistan they could explore within this field
+   
+2. Write an "overall_analysis" paragraph (5–6 sentences) that:
+   - Synthesizes the full picture of who this student appears to be based on their scores
+   - Identifies their dominant cognitive/personality pattern (e.g. "investigative-analytical profile", "creative-social profile")  
+   - Honestly compares their top 2 options and explains when someone should choose one vs the other
+   - Ends with ONE clear, actionable suggestion they can do THIS WEEK to explore their top match
+
+3. Write an "uncertainty" paragraph (2–3 sentences) that:
+   - Honestly states what we cannot yet determine from this assessment alone
+   - Suggests 1–2 specific additional activities or real-world experiences that would clarify the picture
+
+TONE: Warm but honest. Scientific but not cold. Do NOT use generic phrases like "your skills align" or "you would do well". Be specific and direct.
+
+CRITICAL: Return ONLY a valid JSON object in this exact schema:
+{{
+  "explanations": {{
+    "career_cluster_id": "Detailed explanation text...",
+    ...
+  }},
+  "overall_analysis": "Full synthesis paragraph...",
+  "uncertainty": "Uncertainty paragraph..."
+}}
+
+The career_cluster_id keys must EXACTLY match these: {[c.cluster_id for c in request.ranked_clusters]}
+"""
+
     try:
         response = gemini_client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
+                temperature=0.7,
             ),
         )
-        explanations = json.loads(response.text)
-        
+        data = json.loads(response.text)
+
+        # Validate and fill any missing keys with fallback
         final_explanations = {}
         for cluster in request.ranked_clusters:
             cid = cluster.cluster_id
-            final_explanations[cid] = explanations.get(cid, fallback_explanations[cid])
-            
-        return ExplainResponse(explanations=final_explanations)
-        
+            final_explanations[cid] = data.get("explanations", {}).get(cid, fallback_explanations[cid])
+
+        return {
+            "explanations": final_explanations,
+            "overall_analysis": data.get("overall_analysis", ""),
+            "uncertainty": data.get("uncertainty", "")
+        }
+
     except Exception as e:
         print(f"Gemini explain failed: {e}")
-        return ExplainResponse(explanations=fallback_explanations)
+        return fallback
 
 # --- PHASE 1 PIVOT: Behavioral Telemetry & Cold-Start Recommendation Engine ---
 

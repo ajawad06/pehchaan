@@ -89,15 +89,39 @@ export default function VisualSpatial() {
   }
 
   const handleAnswer = (selected) => {
-    if (selected === QUESTIONS[current].a) {
-      if (current + 1 < QUESTIONS.length) {
-        setCurrent(c => c + 1)
-      } else {
-        submitTelemetry(true)
-      }
+    const isCorrect = selected === QUESTIONS[current].a
+    setAttempts(a => a + 1)
+    setWrongAnswers(prev => [...prev, selected])
+
+    // Fire-and-forget telemetry
+    ;(async () => {
+      try {
+        const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+        const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
+        const res = await fetch(`${API_URL}/submit_activity`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: sessionId || 'anonymous',
+            activity_id: 'visual_spatial',
+            difficulty_level: 3,
+            telemetry: { response_time_sec: timeElapsed, hints_used: 0, accuracy: isCorrect ? 0.9 : 0.1, attempts: attempts + 1, completed: true, quit: false, was_correct: isCorrect }
+          })
+        })
+        const data = await res.json()
+        if (data.estimated_skill_delta) {
+          const newScore = Math.max(0, Math.min(100, (traits.spatial_reasoning || 50) + (data.estimated_skill_delta * 10)))
+          updateTraits({ spatial_reasoning: newScore })
+        }
+      } catch (e) { console.warn('Telemetry failed silently:', e) }
+      if (sessionId) await recordResponse(sessionId, 'visual_spatial', { was_correct: isCorrect })
+    })()
+
+    // Always advance
+    if (current + 1 < QUESTIONS.length) {
+      setCurrent(c => c + 1)
     } else {
-      setAttempts(a => a + 1)
-      setWrongAnswers(prev => [...prev, selected])
+      submitTelemetry(true)
     }
   }
 
@@ -126,24 +150,16 @@ export default function VisualSpatial() {
         
         {!completed ? (
           <div className="w-full space-y-3 mb-8">
-            {QUESTIONS[current]?.options.map(opt => {
-              const isWrong = wrongAnswers.includes(opt)
-              return (
-                <button 
-                  key={opt}
-                  onClick={() => handleAnswer(opt)}
-                  disabled={isWrong}
-                  className={`w-full py-4 px-6 text-left border rounded-2xl transition-all font-medium ${
-                    isWrong 
-                      ? 'border-red-500/20 bg-red-500/5 text-red-500/50 cursor-not-allowed'
-                      : 'border-border-glass bg-ivory hover:bg-green-primary hover:text-ivory shadow-sm'
-                  }`}
-                >
-                  {opt}
-                </button>
-              )
-            })}
-          </div>
+          {QUESTIONS[current]?.options.map(opt => (
+            <button 
+              key={opt}
+              onClick={() => handleAnswer(opt)}
+              className="w-full py-4 px-6 text-left border border-border-glass rounded-2xl bg-ivory hover:bg-green-primary hover:text-ivory transition-all font-medium shadow-sm"
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
         ) : (
           <div className="bg-green-primary/10 text-green-dark p-5 rounded-xl text-center font-medium mb-8">
             Complete! Calculating your spatial reasoning score...
