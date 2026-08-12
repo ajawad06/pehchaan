@@ -330,6 +330,59 @@ def next_activity(profile: UserProfile):
     
     return {"next_activity_id": "data_detective_sim", "reason": "Let's see how you handle real-world data and logic constraints."}
 
+class ComprehensiveExplainRequest(BaseModel):
+    profile: UserProfile
+    recommendations: List[Dict[str, Any]]
+
+@app.post("/comprehensive_explain")
+def comprehensive_explain(request: ComprehensiveExplainRequest):
+    fallback_response = {
+        "explanations": {rec["career"]: "Strong match based on your skills." for rec in request.recommendations},
+        "overall_summary": "Based on your telemetry, you show strong potential in these fields.",
+        "uncertainty": "We still need more data on your other skills to be absolutely sure."
+    }
+    
+    if not gemini_client:
+        return fallback_response
+
+    prompt = f"""
+    You are an expert AI career strategist and UX designer for a platform called Pehchaan.
+    We have collected behavioral telemetry on a user.
+    
+    User Interests (Self-reported): {request.profile.interests}
+    User Abilities (Measured via cognitive games): {request.profile.abilities}
+    Career Values: {request.profile.career_values}
+    
+    Our cold-start algorithm recommends these top careers with compatibility and confidence scores:
+    {request.recommendations}
+    
+    Please provide:
+    1. A short, highly personalized explanation for EACH recommended career explaining exactly WHY they are a good fit based on the numerical data provided (compare their interests vs their actual measured abilities). 
+    2. An 'overall_summary' comparing their top options.
+    3. An 'uncertainty' analysis explaining what skills we still need to measure to be more confident.
+    
+    Return ONLY a valid JSON object with the following schema:
+    {{
+      "explanations": {{ "Career Name": "Explanation text..." }},
+      "overall_summary": "Summary text...",
+      "uncertainty": "Uncertainty text..."
+    }}
+    """
+    
+    try:
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+            ),
+        )
+        data = json.loads(response.text)
+        return data
+    except Exception as e:
+        print(f"Gemini comprehensive explain failed: {e}")
+        return fallback_response
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
