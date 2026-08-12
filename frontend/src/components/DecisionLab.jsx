@@ -55,20 +55,31 @@ export default function DecisionLab() {
   const s = SCENARIOS[current]
 
   return (
-    <div className="flex flex-col items-center justify-center p-8 bg-green-dark rounded-xl shadow-lg max-w-lg mx-auto mt-10">
-      <h2 className="text-3xl font-baloo font-bold text-gold mb-6">Decision Lab</h2>
-      <p className="text-lg mb-8 text-center">{s.text}</p>
-      
-      <div className="w-full space-y-4">
-        {s.options.map((opt, i) => (
-          <button 
-            key={i}
-            onClick={() => handleChoice(opt)}
-            className="w-full py-4 px-6 text-left border rounded-lg hover:bg-green-mid hover:border-green-500 transition-colors"
-          >
-            {opt.text}
-          </button>
-        ))}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
+      <div className="absolute top-6 left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
+          ← Back to Home
+        </button>
+      </div>
+
+      <div className="flex flex-col items-center justify-center p-10 bg-soft-white rounded-[32px] shadow-2xl border border-border-glass max-w-2xl w-full mx-auto">
+        <div className="flex justify-between items-center w-full mb-6">
+          <h2 className="text-3xl font-medium tracking-tight">Decision Lab</h2>
+          <span className="text-text-muted text-sm uppercase tracking-widest font-bold">Scenario {current + 1}/{SCENARIOS.length}</span>
+        </div>
+        <p className="text-xl mb-10 text-center font-medium leading-relaxed">{s.text}</p>
+        
+        <div className="w-full space-y-4">
+          {s.options.map((opt, i) => (
+            <button 
+              key={i}
+              onClick={() => handleChoice(opt)}
+              className="w-full py-5 px-6 text-left border border-border-glass rounded-2xl bg-ivory hover:bg-green-primary hover:text-ivory hover:border-green-primary transition-all font-medium shadow-sm"
+            >
+              {opt.text}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
