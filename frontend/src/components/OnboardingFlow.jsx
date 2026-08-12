@@ -32,7 +32,7 @@ export default function OnboardingFlow() {
   const navigate = useNavigate()
   
   const [step, setStep] = useState(0)
-  const [ageGroup, setAgeGroup] = useState(null)
+  const [localAgeGroup, setLocalAgeGroup] = useState(null)
   const [selectedInterests, setSelectedInterests] = useState([])
   const [selectedValues, setSelectedValues] = useState([])
 
@@ -54,8 +54,8 @@ export default function OnboardingFlow() {
 
   const handleNext = async () => {
     if (step === 0) {
-      if (!ageGroup) return alert('Please select your age group!')
-      setAgeGroup(ageGroup) // Thread real age to context (fixes hardcoded '15-17' in SessionContext)
+      if (!localAgeGroup) return alert('Please select your age group!')
+      setAgeGroup(localAgeGroup) // Thread real age to context
       setStep(1)
     } else if (step === 1) {
       if (selectedInterests.length === 0) return alert('Select at least 1 interest!')
@@ -69,14 +69,14 @@ export default function OnboardingFlow() {
       })
 
       updateTraits({ 
-        age_group: ageGroup,
+        age_group: localAgeGroup,
         interests: interestProfile,
         career_values: selectedValues
       })
 
       if (sessionId) {
         await recordResponse(sessionId, 'onboarding', {
-          age_group: ageGroup,
+          age_group: localAgeGroup,
           interests: selectedInterests,
           values: selectedValues
         })
@@ -109,9 +109,9 @@ export default function OnboardingFlow() {
               {AGE_GROUPS.map(ag => (
                 <button
                   key={ag.id}
-                  onClick={() => setAgeGroup(ag.id)}
+                  onClick={() => setLocalAgeGroup(ag.id)}
                   className={`p-5 rounded-2xl text-lg font-medium transition-all ${
-                    ageGroup === ag.id 
+                    localAgeGroup === ag.id 
                       ? 'bg-green-primary text-ivory scale-105 shadow-xl' 
                       : 'bg-ivory border border-border-glass text-green-dark hover:bg-green-primary/5 hover:border-green-primary/30'
                   }`}
