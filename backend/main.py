@@ -196,6 +196,140 @@ def explain(request: ExplainRequest):
         print(f"Gemini explain failed: {e}")
         return ExplainResponse(explanations=fallback_explanations)
 
+# --- PHASE 1 PIVOT: Behavioral Telemetry & Cold-Start Recommendation Engine ---
+
+class BehavioralTelemetry(BaseModel):
+    response_time_sec: float
+    hints_used: int
+    accuracy: float
+    attempts: int
+    completed: bool
+    quit: bool
+
+class ActivityAttempt(BaseModel):
+    user_id: str
+    activity_id: str
+    difficulty_level: int
+    telemetry: BehavioralTelemetry
+
+class UserProfile(BaseModel):
+    user_id: str
+    interests: Dict[str, float]  # e.g. {"architecture": 0.9, "arts": 0.8}
+    abilities: Dict[str, float]  # e.g. {"logical_reasoning": 0.85, "creativity": 0.6}
+    career_values: List[str]
+
+# Simple Career Knowledge Base (Cold-Start Taxonomy)
+CAREER_TAXONOMY = {
+    "Data Science": {
+        "required_skills": {"logical_reasoning": 0.9, "numerical_reasoning": 0.85, "pattern_recognition": 0.9},
+        "related_interests": ["technology", "research", "science"]
+    },
+    "Architecture": {
+        "required_skills": {"spatial_reasoning": 0.9, "creativity": 0.8, "logical_reasoning": 0.7},
+        "related_interests": ["architecture", "arts", "design"]
+    },
+    "UX/UI Design": {
+        "required_skills": {"creativity": 0.9, "empathy": 0.8, "pattern_recognition": 0.7},
+        "related_interests": ["arts", "technology", "design", "psychology"]
+    },
+    "Software Engineering": {
+        "required_skills": {"logical_reasoning": 0.9, "problem_solving": 0.9, "persistence": 0.85},
+        "related_interests": ["technology"]
+    },
+    "Medicine": {
+        "required_skills": {"logical_reasoning": 0.8, "memory": 0.9, "empathy": 0.8, "persistence": 0.9},
+        "related_interests": ["medicine", "science", "helping_people"]
+    }
+}
+
+@app.post("/submit_activity")
+def submit_activity(attempt: ActivityAttempt):
+    """
+    Receives behavioral telemetry from an activity.
+    In a full implementation, this would save to Firestore and update the user's ability profile.
+    For now, it returns a simulated skill update based on the telemetry.
+    """
+    # Behavioral Modifiers (Simple Heuristic)
+    score_modifier = 0.0
+    if attempt.telemetry.accuracy >= 0.8 and attempt.telemetry.response_time_sec < 15.0:
+        score_modifier = 0.1  # Fast and accurate bonus
+    elif attempt.telemetry.hints_used > 1 or attempt.telemetry.accuracy < 0.5:
+        score_modifier = -0.1 # Struggled penalty
+        
+    return {
+        "status": "success",
+        "telemetry_received": True,
+        "estimated_skill_delta": score_modifier,
+        "message": "Telemetry logged for behavioral profiling."
+    }
+
+@app.post("/recommend_careers")
+def recommend_careers(profile: UserProfile):
+    """
+    Cold-Start Career Recommendation Engine.
+    Combines Interest and Ability to recommend careers without ML.
+    Compatibility = (Interest Match * 0.4) + (Ability Match * 0.6)
+    """
+    results = []
+    
+    for career, data in CAREER_TAXONOMY.items():
+        # 1. Calculate Interest Match
+        interest_match = 0.0
+        for interest in profile.interests.keys():
+            if interest in data["related_interests"]:
+                interest_match += profile.interests[interest]
+        # Normalize interest match (max 1.0)
+        interest_match = min(1.0, interest_match)
+        
+        # 2. Calculate Ability Match
+        ability_match = 0.0
+        required_skills = data["required_skills"]
+        if required_skills:
+            total_weight = sum(required_skills.values())
+            earned_weight = 0.0
+            for skill, weight in required_skills.items():
+                user_skill_level = profile.abilities.get(skill, 0.5) # Default 0.5 if unknown
+                earned_weight += (user_skill_level * weight)
+            ability_match = earned_weight / total_weight if total_weight > 0 else 0.0
+            
+        # 3. Final Compatibility Score
+        compatibility = (interest_match * 0.4) + (ability_match * 0.6)
+        
+        # Calculate a pseudo-confidence based on how many required skills the user actually has in their profile
+        known_skills_count = sum(1 for s in required_skills.keys() if s in profile.abilities)
+        confidence = known_skills_count / len(required_skills) if required_skills else 0.5
+        
+        results.append({
+            "career": career,
+            "compatibility": round(compatibility * 100, 1),
+            "confidence": round(confidence * 100, 1)
+        })
+        
+    # Sort by compatibility descending
+    results.sort(key=lambda x: x["compatibility"], reverse=True)
+    
+    return {"recommendations": results[:3]}
+
+@app.post("/next_activity")
+def next_activity(profile: UserProfile):
+    """
+    Active Learning Engine: Recommends the next activity based on missing data or uncertainty.
+    """
+    # Find the skill we know the least about that is required by top careers
+    # (Simplified for MVP: Just checks if they are missing 'spatial_reasoning' or 'creativity')
+    
+    missing_skills = []
+    for skill in ["spatial_reasoning", "creativity", "logical_reasoning", "numerical_reasoning"]:
+        if skill not in profile.abilities:
+            missing_skills.append(skill)
+            
+    if "spatial_reasoning" in missing_skills:
+        return {"next_activity_id": "architecture_puzzle", "reason": "We need to measure your spatial reasoning to determine fit for Architecture or Design."}
+    elif "creativity" in missing_skills:
+        return {"next_activity_id": "creative_uses_brick", "reason": "Let's explore your creative problem-solving approach."}
+    
+    return {"next_activity_id": "data_detective_sim", "reason": "Let's see how you handle real-world data and logic constraints."}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
