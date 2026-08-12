@@ -20,11 +20,19 @@ const CAREER_VALUES = [
   'Social impact', 'Entrepreneurship', 'Work-life balance', 'Leadership'
 ]
 
+const AGE_GROUPS = [
+  { id: '14-15', label: '14-15 (Early Explorer)' },
+  { id: '16-17', label: '16-17 (Path Explorer)' },
+  { id: '18-20', label: '18-20 (Career Explorer)' },
+  { id: '21-24', label: '21-24 (Career Builder)' }
+]
+
 export default function OnboardingFlow() {
   const { sessionId, updateTraits } = useSession()
   const navigate = useNavigate()
   
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(0)
+  const [ageGroup, setAgeGroup] = useState(null)
   const [selectedInterests, setSelectedInterests] = useState([])
   const [selectedValues, setSelectedValues] = useState([])
 
@@ -45,32 +53,34 @@ export default function OnboardingFlow() {
   }
 
   const handleNext = async () => {
-    if (step === 1) {
+    if (step === 0) {
+      if (!ageGroup) return alert('Please select your age group!')
+      setStep(1)
+    } else if (step === 1) {
       if (selectedInterests.length === 0) return alert('Select at least 1 interest!')
       setStep(2)
     } else {
       if (selectedValues.length === 0) return alert('Select at least 1 value!')
       
-      // Update our session state with the new distinct profiles
       const interestProfile = {}
       selectedInterests.forEach((interest, idx) => {
-        // Rank 1 gets 1.0, Rank 2 gets 0.8, Rank 3 gets 0.6
         interestProfile[interest] = 1.0 - (idx * 0.2)
       })
 
       updateTraits({ 
+        age_group: ageGroup,
         interests: interestProfile,
         career_values: selectedValues
       })
 
       if (sessionId) {
         await recordResponse(sessionId, 'onboarding', {
+          age_group: ageGroup,
           interests: selectedInterests,
           values: selectedValues
         })
       }
       
-      // Move to the first actual telemetry-driven cognitive activity
       navigate('/pattern-hunter')
     }
   }
@@ -78,11 +88,32 @@ export default function OnboardingFlow() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 relative">
       <motion.div 
+        key={step}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="max-w-2xl w-full bg-green-dark p-8 rounded-2xl shadow-xl border border-gold/20"
       >
-        {step === 1 ? (
+        {step === 0 ? (
+          <>
+            <h2 className="text-4xl font-baloo font-bold text-gold mb-2 text-center">How old are you?</h2>
+            <p className="text-cream/80 text-center mb-8">This helps us adapt the challenges for you.</p>
+            <div className="flex flex-col space-y-4 mb-8">
+              {AGE_GROUPS.map(ag => (
+                <button
+                  key={ag.id}
+                  onClick={() => setAgeGroup(ag.id)}
+                  className={`p-4 rounded-xl text-lg font-semibold transition-all ${
+                    ageGroup === ag.id 
+                      ? 'bg-gold text-green-deepest scale-105 shadow-md' 
+                      : 'bg-green-mid text-cream hover:bg-green-mid/80'
+                  }`}
+                >
+                  {ag.label}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : step === 1 ? (
           <>
             <h2 className="text-4xl font-baloo font-bold text-gold mb-2 text-center">What are you curious about?</h2>
             <p className="text-cream/80 text-center mb-8">Select up to 3 areas you'd like to explore.</p>
@@ -134,12 +165,12 @@ export default function OnboardingFlow() {
         )}
 
         <div className="flex justify-between items-center mt-8">
-          <div className="text-cream/50 text-sm">Step {step} of 2</div>
+          <div className="text-cream/50 text-sm">Step {step + 1} of 3</div>
           <button 
             onClick={handleNext}
             className="paper-badge text-xl px-8 py-3"
           >
-            {step === 1 ? 'Next →' : 'Start the Challenge! 🚀'}
+            {step < 2 ? 'Next →' : 'Start the Challenge! 🚀'}
           </button>
         </div>
       </motion.div>

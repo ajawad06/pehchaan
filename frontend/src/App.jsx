@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { SessionProvider } from './store/SessionContext'
 import OnboardingFlow from './components/OnboardingFlow'
 import PatternHunter from './components/PatternHunter'
-import DecisionLab from './components/DecisionLab'
+import CreativeUses from './components/CreativeUses'
 import CreativeProblemSolver from './components/CreativeProblemSolver'
 import DataDetective from './components/DataDetective'
 import CareerSimulation from './components/CareerSimulation'
@@ -29,7 +29,7 @@ function App() {
           <Route path="/" element={<AzaadiHero />} />
           <Route path="/start" element={<OnboardingFlow />} />
               <Route path="/pattern-hunter" element={<PatternHunter />} />
-              <Route path="/decision-lab" element={<DecisionLab />} />
+              <Route path="/decision-lab" element={<CreativeUses />} />
               <Route path="/creative-problem-solver" element={<CreativeProblemSolver />} />
               <Route path="/data-detective" element={<DataDetective />} />
           <Route path="/career-simulation" element={<CareerSimulation />} />

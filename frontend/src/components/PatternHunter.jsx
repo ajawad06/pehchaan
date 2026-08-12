@@ -37,14 +37,24 @@ export default function PatternHunter() {
   
   const [current, setCurrent] = useState(0)
   const [startTs, setStartTs] = useState(Date.now())
+  const [timeElapsed, setTimeElapsed] = useState(0)
   const [attempts, setAttempts] = useState(0)
   const [hintsUsed, setHintsUsed] = useState(0)
   const [showHint, setShowHint] = useState(false)
   const [wrongAnswers, setWrongAnswers] = useState([])
 
+  // Timer logic
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeElapsed(Math.floor((Date.now() - startTs) / 1000))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [startTs])
+
   // Reset tracking when question changes
   useEffect(() => {
     setStartTs(Date.now())
+    setTimeElapsed(0)
     setAttempts(0)
     setHintsUsed(0)
     setShowHint(false)
@@ -72,7 +82,7 @@ export default function PatternHunter() {
         body: JSON.stringify({
           user_id: sessionId || 'anonymous',
           activity_id: 'pattern_hunter',
-          difficulty_level: 3,
+          difficulty_level: 3, // In full app, derive from traits.age_group
           telemetry: telemetry
         })
       })
@@ -141,7 +151,10 @@ export default function PatternHunter() {
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-baloo font-bold text-gold">Pattern Hunter</h2>
-          <span className="text-cream/60">Stage {current + 1} / {QUESTIONS.length}</span>
+          <div className="flex space-x-4">
+            <span className="text-gold-bright font-mono text-lg bg-green-deepest px-3 py-1 rounded-lg">⏱ {timeElapsed}s</span>
+            <span className="text-cream/60">Stage {current + 1} / {QUESTIONS.length}</span>
+          </div>
         </div>
         
         <p className="text-xl text-cream mb-8 font-semibold">{q.text}</p>

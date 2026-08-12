@@ -36,7 +36,10 @@ export default function ResultsScreen() {
           body: JSON.stringify(profile)
         })
         
-        if (!recResponse.ok) throw new Error('Failed to fetch recommendations')
+        if (!recResponse.ok) {
+          const errText = await recResponse.text()
+          throw new Error(`Failed to fetch recommendations: ${errText}`)
+        }
         const recData = await recResponse.json()
         setRecommendations(recData.recommendations)
 
