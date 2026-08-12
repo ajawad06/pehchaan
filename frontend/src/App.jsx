@@ -8,7 +8,7 @@ import CreativeProblemSolver from './components/CreativeProblemSolver'
 import DataDetective from './components/DataDetective'
 import CareerSimulation from './components/CareerSimulation'
 import ResultsScreen from './components/ResultsScreen'
-import AzaadiHero from './components/AzaadiHero'
+import LandingPage from './components/LandingPage'
 import { useOfflineSync } from './services/offlineQueue'
 
 import './index.css'
@@ -26,7 +26,7 @@ function App() {
           </div>
         )}
         <Routes>
-          <Route path="/" element={<AzaadiHero />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/start" element={<OnboardingFlow />} />
               <Route path="/pattern-hunter" element={<PatternHunter />} />
               <Route path="/decision-lab" element={<CreativeUses />} />
