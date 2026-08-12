@@ -86,26 +86,32 @@ export default function OnboardingFlow() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 relative">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
+      <div className="absolute top-6 left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
+          ← Back to Home
+        </button>
+      </div>
+
       <motion.div 
         key={step}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl w-full bg-green-dark p-8 rounded-2xl shadow-xl border border-gold/20"
+        className="max-w-2xl w-full bg-soft-white p-10 rounded-[32px] shadow-2xl border border-border-glass"
       >
         {step === 0 ? (
           <>
-            <h2 className="text-4xl font-baloo font-bold text-gold mb-2 text-center">How old are you?</h2>
-            <p className="text-cream/80 text-center mb-8">This helps us adapt the challenges for you.</p>
+            <h2 className="text-4xl font-medium tracking-tight mb-2 text-center text-green-dark">How old are you?</h2>
+            <p className="text-text-muted text-center mb-10">This helps us adapt the challenges for you.</p>
             <div className="flex flex-col space-y-4 mb-8">
               {AGE_GROUPS.map(ag => (
                 <button
                   key={ag.id}
                   onClick={() => setAgeGroup(ag.id)}
-                  className={`p-4 rounded-xl text-lg font-semibold transition-all ${
+                  className={`p-5 rounded-2xl text-lg font-medium transition-all ${
                     ageGroup === ag.id 
-                      ? 'bg-gold text-green-deepest scale-105 shadow-md' 
-                      : 'bg-green-mid text-cream hover:bg-green-mid/80'
+                      ? 'bg-green-primary text-ivory scale-105 shadow-xl' 
+                      : 'bg-ivory border border-border-glass text-green-dark hover:bg-green-primary/5 hover:border-green-primary/30'
                   }`}
                 >
                   {ag.label}
@@ -115,8 +121,8 @@ export default function OnboardingFlow() {
           </>
         ) : step === 1 ? (
           <>
-            <h2 className="text-4xl font-baloo font-bold text-gold mb-2 text-center">What are you curious about?</h2>
-            <p className="text-cream/80 text-center mb-8">Select up to 3 areas you'd like to explore.</p>
+            <h2 className="text-4xl font-medium tracking-tight mb-2 text-center text-green-dark">What are you curious about?</h2>
+            <p className="text-text-muted text-center mb-10">Select up to 3 areas you'd like to explore.</p>
             
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
               {INTEREST_CATEGORIES.map(cat => {
@@ -125,14 +131,14 @@ export default function OnboardingFlow() {
                   <button
                     key={cat.id}
                     onClick={() => toggleInterest(cat.id)}
-                    className={`p-4 rounded-xl flex flex-col items-center justify-center transition-all ${
+                    className={`p-5 rounded-2xl flex flex-col items-center justify-center transition-all ${
                       isSelected 
-                        ? 'bg-gold text-green-deepest scale-105 shadow-md' 
-                        : 'bg-green-mid text-cream hover:bg-green-mid/80'
+                        ? 'bg-green-primary text-ivory scale-105 shadow-xl' 
+                        : 'bg-ivory border border-border-glass text-green-dark hover:bg-green-primary/5 hover:border-green-primary/30'
                     }`}
                   >
-                    <span className="text-3xl mb-2">{cat.icon}</span>
-                    <span className="text-sm font-semibold text-center">{cat.label}</span>
+                    <span className="text-3xl mb-3">{cat.icon}</span>
+                    <span className="text-sm font-medium text-center">{cat.label}</span>
                   </button>
                 )
               })}
@@ -140,8 +146,8 @@ export default function OnboardingFlow() {
           </>
         ) : (
           <>
-            <h2 className="text-4xl font-baloo font-bold text-gold mb-2 text-center">What matters to you?</h2>
-            <p className="text-cream/80 text-center mb-8">Pick up to 3 things you value most in a future career.</p>
+            <h2 className="text-4xl font-medium tracking-tight mb-2 text-center text-green-dark">What matters to you?</h2>
+            <p className="text-text-muted text-center mb-10">Pick up to 3 things you value most in a future career.</p>
             
             <div className="flex flex-wrap justify-center gap-3 mb-8">
               {CAREER_VALUES.map(val => {
@@ -150,10 +156,10 @@ export default function OnboardingFlow() {
                   <button
                     key={val}
                     onClick={() => toggleValue(val)}
-                    className={`px-4 py-2 rounded-full font-semibold transition-all ${
+                    className={`px-5 py-3 rounded-full font-medium transition-all ${
                       isSelected 
-                        ? 'bg-gold-bright text-green-deepest' 
-                        : 'bg-green-mid text-cream hover:bg-green-mid/80'
+                        ? 'bg-sage text-ivory shadow-md' 
+                        : 'bg-ivory border border-border-glass text-green-dark hover:bg-green-primary/5'
                     }`}
                   >
                     {val}
@@ -164,13 +170,13 @@ export default function OnboardingFlow() {
           </>
         )}
 
-        <div className="flex justify-between items-center mt-8">
-          <div className="text-cream/50 text-sm">Step {step + 1} of 3</div>
+        <div className="flex justify-between items-center mt-12 pt-6 border-t border-green-primary/10">
+          <div className="text-text-muted text-sm font-medium uppercase tracking-widest">Step {step + 1} of 3</div>
           <button 
             onClick={handleNext}
-            className="paper-badge text-xl px-8 py-3"
+            className="bg-green-primary text-ivory px-8 py-3 rounded-full font-medium hover:bg-green-dark transition-colors shadow-md"
           >
-            {step < 2 ? 'Next →' : 'Start the Challenge! 🚀'}
+            {step < 2 ? 'Next →' : 'Start Exploring 🚀'}
           </button>
         </div>
       </motion.div>

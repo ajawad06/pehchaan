@@ -33,27 +33,27 @@ export default function LandingPage() {
           </svg>
         </div>
 
-        <div className="z-10 max-w-4xl w-full flex flex-col items-center text-center">
+        <div className="z-10 max-w-7xl w-full grid md:grid-cols-2 gap-12 items-center">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
           >
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-medium tracking-tight leading-[1.1] mb-6">
-              You don't need <br className="hidden md:block"/> another career test.
+              You don't need <br className="hidden lg:block"/> another career test.
             </h1>
-            <h2 className="text-4xl md:text-6xl font-medium text-sage mb-10 tracking-tight">
-              You need to <br className="hidden md:block"/> understand yourself.
+            <h2 className="text-4xl md:text-5xl font-medium text-sage mb-8 tracking-tight">
+              You need to <br className="hidden lg:block"/> understand yourself.
             </h2>
             
-            <p className="text-lg md:text-xl text-text-muted max-w-2xl mx-auto mb-12 font-light leading-relaxed">
+            <p className="text-lg md:text-xl text-text-muted mb-10 font-light leading-relaxed max-w-lg">
               Pehchaan helps you discover the fields, strengths and career paths that fit the way you think, create and solve problems.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
               <Link 
                 to="/start" 
-                className="group relative bg-ivory text-green-dark px-8 py-4 rounded-full text-lg font-semibold hover:bg-soft-white transition-all hover:scale-[1.02] overflow-hidden"
+                className="group relative bg-ivory text-green-dark px-8 py-4 rounded-full text-lg font-semibold hover:bg-soft-white transition-all hover:scale-[1.02] overflow-hidden shadow-lg"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   Discover My Path
@@ -66,6 +66,22 @@ export default function LandingPage() {
             </div>
             
             <p className="mt-8 text-sm text-sage/70 font-light tracking-wide uppercase">No boring career tests.</p>
+          </motion.div>
+
+          {/* 3D Student Animation */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="relative hidden md:block"
+          >
+            <motion.img 
+              animate={{ y: [-15, 15, -15] }}
+              transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+              src="/student-3d.png" 
+              alt="Student exploring career paths"
+              className="w-full max-w-lg mx-auto drop-shadow-2xl object-contain"
+            />
           </motion.div>
         </div>
       </section>

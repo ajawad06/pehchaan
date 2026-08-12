@@ -98,40 +98,46 @@ export default function DataDetective() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 relative">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
+      <div className="absolute top-6 left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
+          ← Back to Home
+        </button>
+      </div>
+
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-2xl w-full bg-green-dark p-8 rounded-2xl shadow-xl border border-gold/20"
+        className="max-w-2xl w-full bg-soft-white p-8 rounded-[32px] shadow-2xl border border-border-glass"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-baloo font-bold text-gold">Data Detective</h2>
-          <span className="text-gold-bright font-mono text-lg bg-green-deepest px-3 py-1 rounded-lg">⏱ {timeElapsed}s</span>
+          <h2 className="text-3xl font-medium tracking-tight">Data Detective</h2>
+          <span className="text-green-secondary font-mono font-medium px-3 py-1 bg-green-primary/5 rounded-full">⏱ {timeElapsed}s</span>
         </div>
         
         {/* Dataset Table */}
-        <div className="bg-green-mid rounded-xl overflow-hidden mb-8 border border-gold/30">
+        <div className="bg-ivory rounded-2xl overflow-hidden mb-8 border border-border-glass shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-green-deepest text-gold-bright">
-                <th className="p-3 border-b border-gold/20">Month</th>
-                <th className="p-3 border-b border-gold/20">Revenue (Rs.)</th>
-                <th className="p-3 border-b border-gold/20">Active Users</th>
+              <tr className="bg-green-primary/5 text-green-secondary text-sm tracking-wide uppercase">
+                <th className="p-4 border-b border-border-glass font-medium">Month</th>
+                <th className="p-4 border-b border-border-glass font-medium">Revenue (Rs.)</th>
+                <th className="p-4 border-b border-border-glass font-medium">Active Users</th>
               </tr>
             </thead>
             <tbody>
               {dataset.map((row, i) => (
-                <tr key={i} className="border-b border-cream/10 last:border-0 hover:bg-green-deepest/50">
-                  <td className="p-3 text-cream">{row.month}</td>
-                  <td className="p-3 text-cream font-mono">{row.revenue}</td>
-                  <td className="p-3 text-cream font-mono">{row.users}</td>
+                <tr key={i} className="border-b border-border-glass last:border-0 hover:bg-green-primary/5 transition-colors">
+                  <td className="p-4 text-green-dark">{row.month}</td>
+                  <td className="p-4 text-green-dark font-mono font-medium">{row.revenue}</td>
+                  <td className="p-4 text-green-dark font-mono font-medium">{row.users}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <p className="text-xl text-cream mb-6 font-semibold">{question}</p>
+        <p className="text-xl text-green-dark mb-8 font-medium leading-relaxed">{question}</p>
         
         <div className="w-full space-y-3 mb-8">
           {options.map(opt => {
@@ -141,10 +147,10 @@ export default function DataDetective() {
                 key={opt}
                 onClick={() => handleAnswer(opt)}
                 disabled={isWrong}
-                className={`w-full py-4 px-6 text-left border rounded-lg transition-all ${
+                className={`w-full py-4 px-6 text-left border rounded-2xl transition-all font-medium ${
                   isWrong 
-                    ? 'border-red-500/50 bg-red-500/10 text-cream/50 cursor-not-allowed'
-                    : 'border-gold/20 bg-green-mid hover:bg-gold hover:text-green-deepest font-medium'
+                    ? 'border-red-500/20 bg-red-500/5 text-red-500/50 cursor-not-allowed'
+                    : 'border-border-glass bg-ivory hover:bg-green-primary hover:text-ivory shadow-sm'
                 }`}
               >
                 {opt}
@@ -153,12 +159,12 @@ export default function DataDetective() {
           })}
         </div>
 
-        <div className="flex justify-between items-center mt-6 pt-6 border-t border-cream/10">
+        <div className="flex justify-between items-center mt-8 pt-6 border-t border-green-primary/10">
           <button 
             onClick={() => { setHintsUsed(h => h + 1); setShowHint(true) }}
             disabled={showHint}
-            className={`text-sm px-4 py-2 rounded-full border ${
-              showHint ? 'border-cream/20 text-cream/40' : 'border-gold text-gold hover:bg-gold hover:text-green-deepest'
+            className={`text-sm px-6 py-2 rounded-full border transition-colors font-medium ${
+              showHint ? 'border-border-glass text-text-muted' : 'border-green-secondary text-green-secondary hover:bg-green-secondary hover:text-ivory'
             }`}
           >
             {showHint ? "Hint Used" : "💡 Need a hint?"}
@@ -169,7 +175,7 @@ export default function DataDetective() {
               <motion.div 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="text-sm text-gold-bright max-w-[60%] text-right italic"
+                className="text-sm text-green-secondary max-w-[60%] text-right font-medium"
               >
                 {hint}
               </motion.div>

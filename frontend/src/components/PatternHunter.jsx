@@ -8,26 +8,34 @@ const QUESTIONS = [
   { 
     id: 1, 
     type: "numerical_reasoning", 
-    text: "What comes next? 2, 4, 8, 16...", 
-    options: ["24", "32", "64", "20"], 
-    answer: "32",
-    hint: "Think about multiplication. What happens when you multiply a number by itself?"
+    text: "Identify the missing element in the sequence: 2, 6, 12, 20, 30, ?", 
+    options: ["40", "42", "44", "48"], 
+    answer: "42",
+    hint: "Look at the differences between consecutive numbers. How are the differences themselves changing?"
   },
   { 
     id: 2, 
     type: "logical_reasoning", 
-    text: "If all Z are Y, and all Y are X, then:", 
-    options: ["All Z are X", "All X are Z", "Some Z are not X", "None of the above"], 
-    answer: "All Z are X",
-    hint: "Draw three circles inside each other. The smallest circle is Z."
+    text: "If C = 3, F = 6, and I = 9, what is the value of P + D?", 
+    options: ["18", "20", "22", "24"], 
+    answer: "20",
+    hint: "Map each letter to its position in the alphabet (A=1, B=2...)."
   },
   {
     id: 3,
     type: "pattern_recognition",
-    text: "A, C, F, J, O, ...",
-    options: ["U", "V", "S", "T"],
-    answer: "U",
-    hint: "Count the number of letters skipped between each step. It increases by 1 each time."
+    text: "Observe the pattern: 111 = 3, 112 = 4, 122 = 5, 222 = 6. What does 333 equal?",
+    options: ["6", "7", "8", "9"],
+    answer: "9",
+    hint: "Don't think of them as hundreds and tens. Look at the individual digits."
+  },
+  {
+    id: 4,
+    type: "spatial_reasoning",
+    text: "Which of the following logically completes this sequence? ▲ ● ▲ ● ■ ▲ ● ▲ ● ■ ■ ?",
+    options: ["▲", "●", "■", "None"],
+    answer: "▲",
+    hint: "Break the sequence into smaller repeating groups. Notice how the groups grow."
   }
 ]
 
@@ -142,24 +150,30 @@ export default function PatternHunter() {
   const q = QUESTIONS[current]
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 relative">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
+      <div className="absolute top-6 left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
+          ← Back to Home
+        </button>
+      </div>
+
       <motion.div 
         key={current}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full bg-green-dark p-8 rounded-2xl shadow-xl border border-gold/20"
+        className="max-w-xl w-full bg-soft-white p-8 rounded-[32px] shadow-2xl border border-border-glass"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-baloo font-bold text-gold">Pattern Hunter</h2>
-          <div className="flex space-x-4">
-            <span className="text-gold-bright font-mono text-lg bg-green-deepest px-3 py-1 rounded-lg">⏱ {timeElapsed}s</span>
-            <span className="text-cream/60">Stage {current + 1} / {QUESTIONS.length}</span>
+          <h2 className="text-3xl font-medium tracking-tight">Pattern Hunter</h2>
+          <div className="flex space-x-4 items-center">
+            <span className="text-green-secondary font-mono font-medium px-3 py-1 bg-green-primary/5 rounded-full">⏱ {timeElapsed}s</span>
+            <span className="text-text-muted text-sm uppercase tracking-widest font-bold">Stage {current + 1}/{QUESTIONS.length}</span>
           </div>
         </div>
         
-        <p className="text-xl text-cream mb-8 font-semibold">{q.text}</p>
+        <p className="text-2xl mb-10 font-medium leading-relaxed">{q.text}</p>
         
-        <div className="w-full space-y-4 mb-8">
+        <div className="w-full space-y-3 mb-8">
           {q.options.map(opt => {
             const isWrong = wrongAnswers.includes(opt)
             return (
@@ -167,10 +181,10 @@ export default function PatternHunter() {
                 key={opt}
                 onClick={() => handleAnswer(opt)}
                 disabled={isWrong}
-                className={`w-full py-4 px-6 text-left border rounded-lg transition-all ${
+                className={`w-full py-4 px-6 text-left border rounded-2xl transition-all font-medium ${
                   isWrong 
-                    ? 'border-red-500/50 bg-red-500/10 text-cream/50 cursor-not-allowed'
-                    : 'border-gold/20 bg-green-mid hover:bg-gold hover:text-green-deepest'
+                    ? 'border-red-500/20 bg-red-500/5 text-red-500/50 cursor-not-allowed'
+                    : 'border-green-primary/10 bg-ivory hover:bg-green-primary hover:text-ivory shadow-sm'
                 }`}
               >
                 {opt}
@@ -179,12 +193,12 @@ export default function PatternHunter() {
           })}
         </div>
 
-        <div className="flex justify-between items-center mt-6 pt-6 border-t border-cream/10">
+        <div className="flex justify-between items-center mt-8 pt-6 border-t border-green-primary/10">
           <button 
             onClick={useHint}
             disabled={showHint}
-            className={`text-sm px-4 py-2 rounded-full border ${
-              showHint ? 'border-cream/20 text-cream/40' : 'border-gold text-gold hover:bg-gold hover:text-green-deepest'
+            className={`text-sm px-6 py-2 rounded-full border transition-colors font-medium ${
+              showHint ? 'border-border-glass text-text-muted' : 'border-green-secondary text-green-secondary hover:bg-green-secondary hover:text-ivory'
             }`}
           >
             {showHint ? "Hint Used" : "💡 Need a hint?"}
@@ -195,7 +209,7 @@ export default function PatternHunter() {
               <motion.div 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="text-sm text-gold-bright max-w-[60%] text-right italic"
+                className="text-sm text-green-secondary max-w-[60%] text-right font-medium"
               >
                 {q.hint}
               </motion.div>

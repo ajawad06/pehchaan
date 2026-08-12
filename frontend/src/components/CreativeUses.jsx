@@ -91,72 +91,78 @@ export default function CreativeUses() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 relative">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
+      <div className="absolute top-6 left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
+          ← Back to Home
+        </button>
+      </div>
+
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full bg-green-dark p-8 rounded-2xl shadow-xl border border-gold/20"
+        className="max-w-xl w-full bg-soft-white p-8 rounded-[32px] shadow-2xl border border-border-glass"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-baloo font-bold text-gold">Creative Uses</h2>
+          <h2 className="text-3xl font-medium tracking-tight">Creative Uses</h2>
           <div className="flex space-x-4">
-            <span className={`font-mono text-lg px-3 py-1 rounded-lg ${timeElapsed > 45 ? 'bg-red-500 text-white animate-pulse' : 'bg-green-deepest text-gold-bright'}`}>
+            <span className={`font-mono font-medium px-3 py-1 rounded-full ${timeElapsed > 45 ? 'bg-red-500/10 text-red-600 animate-pulse' : 'bg-green-primary/5 text-green-secondary'}`}>
               ⏱ {MAX_TIME - timeElapsed}s left
             </span>
           </div>
         </div>
         
-        <div className="bg-green-mid rounded-xl p-6 mb-6 border border-gold/30">
-          <p className="text-xl text-cream font-semibold text-center mb-2">How many different uses can you think of for a <span className="text-gold-bright">BRICK</span>?</p>
-          <p className="text-sm text-cream/70 text-center">Think outside the box. A brick doesn't just have to be for building walls!</p>
+        <div className="bg-ivory rounded-2xl p-6 mb-8 border border-green-primary/10">
+          <p className="text-xl font-medium text-center mb-2 leading-relaxed">How many different uses can you think of for a <span className="text-green-primary font-bold">BRICK</span>?</p>
+          <p className="text-sm text-text-muted text-center">Think outside the box. A brick doesn't just have to be for building walls!</p>
         </div>
         
         {!completed ? (
-          <form onSubmit={handleAddIdea} className="flex gap-2 mb-6">
+          <form onSubmit={handleAddIdea} className="flex gap-3 mb-8">
             <input 
               type="text" 
               value={currentIdea}
               onChange={(e) => setCurrentIdea(e.target.value)}
               placeholder="Type an idea and press Enter..."
-              className="flex-1 bg-green-deepest border border-gold/20 rounded-lg px-4 py-3 text-cream focus:outline-none focus:border-gold"
+              className="flex-1 bg-ivory border border-border-glass rounded-xl px-5 py-4 text-green-dark focus:outline-none focus:border-green-primary shadow-sm"
               autoFocus
             />
-            <button type="submit" className="bg-gold text-green-deepest font-bold px-6 py-3 rounded-lg hover:bg-gold-bright transition-colors">
+            <button type="submit" className="bg-green-primary text-ivory font-medium px-8 py-4 rounded-xl hover:bg-green-dark transition-colors shadow-md">
               Add
             </button>
           </form>
         ) : (
-          <div className="bg-gold/20 text-gold-bright p-4 rounded-lg text-center font-bold mb-6">
+          <div className="bg-green-primary/10 text-green-dark p-5 rounded-xl text-center font-medium mb-8">
             Time's up! Calculating your creativity score...
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 min-h-[100px] p-4 bg-green-deepest rounded-xl">
+        <div className="flex flex-wrap gap-2 min-h-[120px] p-5 bg-green-primary/5 rounded-2xl border border-border-glass">
           <AnimatePresence>
             {ideas.map((idea, idx) => (
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 key={idx}
-                className="bg-green-mid border border-gold/30 text-cream px-3 py-2 rounded-lg text-sm"
+                className="bg-ivory border border-border-glass text-green-dark px-4 py-2 rounded-lg text-sm font-medium shadow-sm"
               >
                 {idea}
               </motion.div>
             ))}
             {ideas.length === 0 && (
-              <div className="text-cream/30 text-sm italic w-full text-center mt-6">
+              <div className="text-text-muted text-sm italic w-full text-center mt-8">
                 Your ideas will appear here...
               </div>
             )}
           </AnimatePresence>
         </div>
         
-        <div className="mt-6 flex justify-between items-center">
-          <span className="text-cream/60 text-sm">Ideas generated: {ideas.length}</span>
+        <div className="mt-8 flex justify-between items-center">
+          <span className="text-text-muted text-sm font-medium">Ideas generated: {ideas.length}</span>
           {!completed && (
             <button 
               onClick={submitTelemetry}
-              className="text-gold border border-gold px-4 py-2 rounded-lg hover:bg-gold hover:text-green-deepest transition-colors text-sm"
+              className="text-green-secondary border border-border-glass px-5 py-2 rounded-full hover:bg-green-secondary hover:text-ivory transition-colors text-sm font-medium"
             >
               Finish Early
             </button>
