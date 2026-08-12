@@ -6,10 +6,24 @@ import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
+import firebase_admin
+from firebase_admin import credentials
+
+try:
+    firebase_cred_json = os.environ.get("FIREBASE_CREDENTIALS")
+    if firebase_cred_json:
+        cred_dict = json.loads(firebase_cred_json)
+        cred = credentials.Certificate(cred_dict)
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(cred)
+except Exception as e:
+    print(f"Error initializing Firebase Admin from env: {e}")
+
 try:
     from google import genai
     from google.genai import types
-    gemini_client = genai.Client()
+    API_KEY = os.environ.get("GEMINI_API_KEY")
+    gemini_client = genai.Client(api_key=API_KEY) if API_KEY else None
 except Exception as e:
     print(f"Error initializing Gemini client: {e}")
     gemini_client = None
