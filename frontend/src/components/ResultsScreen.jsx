@@ -57,6 +57,7 @@ export default function ResultsScreen() {
   const [recommendations, setRecommendations] = useState(null)
   const [comprehensiveData, setComprehensiveData] = useState(null)
   const [allResults, setAllResults] = useState([])  // full ranked list for domain comparison
+  const [modelVersion, setModelVersion] = useState('taxonomy_v2')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -66,8 +67,7 @@ export default function ResultsScreen() {
         const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
         const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
         
-        // ─── Step 1: Build the 12-feature trait vector (all 0–1) ───
-        // Activities store values in 0–100; RF model was trained on 0–1 → divide by 100
+        // ─── Build the RF trait vector (0–1 normalized) ───────────────────────
         const traitVector = {
           R: traits.R || 0,
           I: traits.I || 0,
@@ -82,72 +82,92 @@ export default function ResultsScreen() {
           risk_tolerance: (traits.risk_tolerance || 0) / 100,
           domain_exposure: (traits.domain_exposure || 0) / 100,
         }
-        
+
+        // ─── Build full abilities map from ALL measured traits ─────────────────
+        // Normalise: scores >1 were stored as 0-100 → divide by 100
+        const abilities = {}
+        ALL_TAXONOMY_SKILLS.forEach(skill => {
+          const raw = traits[skill]
+          if (raw !== undefined && raw !== null) {
+            abilities[skill] = raw > 1.0 ? raw / 100 : raw
+          }
+        })
+
+        const userProfile = {
+          user_id: sessionId || 'anonymous',
+          interests: traits.interests || {},
+          abilities,
+          career_values: traits.career_values || [],
+        }
+
+        // ─── Run BOTH engines in parallel ─────────────────────────────────────
+        // We always need the taxonomy result (a) for the interest-gated suppression
+        // logic and (b) to populate the domain comparison block.
+        // The RF model is kept as a secondary signal but its career labels are
+        // from an old training run — the taxonomy is primary when interests exist.
+        const [rfResult, taxResult] = await Promise.allSettled([
+          // RF model
+          fetch(`${API_URL}/predict`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trait_vector: traitVector }),
+          }).then(r => r.ok ? r.json() : Promise.reject('rf_not_ok')),
+
+          // Taxonomy engine (always runs — not a fallback)
+          fetch(`${API_URL}/recommend_careers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userProfile),
+          }).then(r => r.ok ? r.json() : Promise.reject('tax_not_ok')),
+        ])
+
+        const hasInterests = Object.keys(traits.interests || {}).length > 0
         let ranked_clusters = null
         let model_version = null
-        
-        // ─── Step 2: Try /predict (real RF model) first ───
-        try {
-          const predRes = await fetch(`${API_URL}/predict`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ trait_vector: traitVector })
-          })
-          
-          if (predRes.ok) {
-            const predData = await predRes.json()
-            ranked_clusters = predData.ranked_clusters
-            model_version = predData.model_version
-          }
-        } catch (predErr) {
-          console.warn('RF /predict failed, falling back to taxonomy engine:', predErr)
-        }
-        
-        // ─── Step 3: Fallback to /recommend_careers (cold-start taxonomy) ───
-        if (!ranked_clusters) {
-          // Build abilities from ALL measured traits dynamically — no hardcoded shortlist.
-          // Skills that are stored as 0-100 in traits get divided by 100.
-          // Skills already stored as 0-1 (from rubric activities) pass through directly.
-          const abilities = {}
-          ALL_TAXONOMY_SKILLS.forEach(skill => {
-            const raw = traits[skill]
-            if (raw !== undefined && raw !== 0) {
-              // Heuristic: if a value is > 1.0 it was stored as 0-100 → normalize
-              abilities[skill] = raw > 1.0 ? raw / 100 : raw
-            }
-          })
 
-          const profile = {
-            user_id: sessionId || "anonymous",
-            interests: traits.interests || { "technology": 0.5 },
-            abilities,
-            career_values: traits.career_values || []
-          }
-          
-          const recRes = await fetch(`${API_URL}/recommend_careers`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(profile)
-          })
-          
-          if (!recRes.ok) {
-            const errText = await recRes.text()
-            throw new Error(`Failed to fetch recommendations: ${errText} (Using API: ${API_URL})`)
-          }
-          
-          const recData = await recRes.json()
-          // Store full ranked list for the domain comparison block
-          const fullList = recData.recommendations.map(r => ({
+        // ─── Decision: which engine wins? ─────────────────────────────────────
+        // Taxonomy wins when the user has declared interests, because:
+        //   1. The interest suppression gate (interest_match < 0.15 → ×0.15) only
+        //      lives in the taxonomy engine — the RF model ignores interests entirely.
+        //   2. The RF model was trained on old career labels that don't match our
+        //      22-career Pakistan taxonomy, so its cluster_ids are stale.
+        // RF model only wins as a tiebreaker when no interests were declared.
+
+        if (taxResult.status === 'fulfilled') {
+          const fullList = taxResult.value.recommendations.map(r => ({
             cluster_id: r.career,
-            confidence: r.compatibility / 100
+            confidence: r.compatibility / 100,
           }))
           setAllResults(fullList)
-          // Reshape taxonomy output to match /predict shape
-          ranked_clusters = fullList.slice(0, 5)
-          model_version = 'cold_start_v1'
+
+          if (hasInterests || rfResult.status === 'rejected') {
+            // Taxonomy is primary
+            ranked_clusters = fullList.slice(0, 5)
+            model_version = 'taxonomy_v2'
+          }
         }
+
+        // RF model supplements when taxonomy didn't run or no interests declared
+        if (!ranked_clusters && rfResult.status === 'fulfilled') {
+          ranked_clusters = rfResult.value.ranked_clusters
+          model_version = rfResult.value.model_version
+        }
+
+        // Last-resort: taxonomy without the interest gate
+        if (!ranked_clusters && taxResult.status === 'fulfilled') {
+          ranked_clusters = taxResult.value.recommendations
+            .map(r => ({ cluster_id: r.career, confidence: r.compatibility / 100 }))
+            .slice(0, 5)
+          model_version = 'taxonomy_v2'
+        }
+
+        if (!ranked_clusters) {
+          throw new Error(`Both recommendation engines failed. Check backend is running at ${API_URL}`)
+        }
+
         
         setRecommendations(ranked_clusters)
+        setModelVersion(model_version || 'taxonomy_v2')
         
         if (sessionId) {
           await saveRecommendations(sessionId, ranked_clusters, model_version)
@@ -389,7 +409,9 @@ export default function ResultsScreen() {
                         <h4 className={`text-2xl font-medium capitalize ${idx === 0 ? 'text-ivory' : 'text-green-dark'}`}>
                           {rec.cluster_id.replace(/_/g, ' ')}
                         </h4>
-                        <p className={`text-sm mt-1 ${idx === 0 ? 'text-sage' : 'text-text-muted'}`}>ML Confidence · RandomForest rf_v2</p>
+                        <p className={`text-sm mt-1 ${idx === 0 ? 'text-sage' : 'text-text-muted'}`}>
+                          {modelVersion === 'taxonomy_v2' ? 'Interest-Gated Taxonomy v2' : `ML Confidence · RandomForest ${modelVersion}`}
+                        </p>
                       </div>
                       <div className={`text-4xl font-bold ${idx === 0 ? 'text-sage' : 'text-green-primary'}`}>
                         {Math.round(rec.confidence * 100)}%
