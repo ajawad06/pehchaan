@@ -283,28 +283,110 @@ class UserProfile(BaseModel):
     abilities: Dict[str, float]  # e.g. {"logical_reasoning": 0.85, "creativity": 0.6}
     career_values: List[str]
 
-# Simple Career Knowledge Base (Cold-Start Taxonomy)
+# Pakistan-relevant Career Taxonomy — 22 careers across all interest domains
+# Every interest in INTEREST_MODULES has at least one matching career here.
+# CS is split into 5 distinct paths to answer the AI/DS/SE/Cyber question directly.
 CAREER_TAXONOMY = {
-    "Data Science": {
-        "required_skills": {"logical_reasoning": 0.9, "numerical_reasoning": 0.85, "pattern_recognition": 0.9},
-        "related_interests": ["technology", "research", "science"]
+    # ── Technology & Computing (split into 5 paths) ──
+    "Software Engineering": {
+        "required_skills": {"logical_reasoning": 0.85, "systems_thinking": 0.8, "persistence": 0.75},
+        "related_interests": ["technology"]
     },
+    "Computer Science / Research": {
+        "required_skills": {"logical_reasoning": 0.85, "abstract_reasoning": 0.85, "numerical_reasoning": 0.7},
+        "related_interests": ["technology", "science"]
+    },
+    "Data Science": {
+        "required_skills": {"numerical_reasoning": 0.9, "pattern_recognition": 0.85, "analytical_thinking": 0.85},
+        "related_interests": ["technology", "science"]
+    },
+    "Artificial Intelligence / ML": {
+        "required_skills": {"numerical_reasoning": 0.85, "pattern_recognition": 0.9, "analytical_thinking": 0.85},
+        "related_interests": ["technology", "science"]
+    },
+    "Cybersecurity": {
+        "required_skills": {"attention_to_detail": 0.9, "adversarial_thinking": 0.85, "persistence": 0.8},
+        "related_interests": ["technology"]
+    },
+    # ── Medicine & Health ──
+    "Medicine (MBBS)": {
+        "required_skills": {"memory": 0.9, "empathy": 0.8, "persistence": 0.9, "logical_reasoning": 0.7},
+        "related_interests": ["medicine", "science"]
+    },
+    "Pharmacy": {
+        "required_skills": {"memory": 0.85, "attention_to_detail": 0.8, "numerical_reasoning": 0.6},
+        "related_interests": ["medicine", "science"]
+    },
+    "Nursing / Allied Health": {
+        "required_skills": {"empathy": 0.9, "persistence": 0.75, "attention_to_detail": 0.7},
+        "related_interests": ["medicine"]
+    },
+    # ── Engineering (non-software) ──
+    "Civil Engineering": {
+        "required_skills": {"spatial_reasoning": 0.85, "numerical_reasoning": 0.8, "planning": 0.75},
+        "related_interests": ["engineering", "architecture"]
+    },
+    "Electrical / Mechanical Engineering": {
+        "required_skills": {"logical_reasoning": 0.8, "numerical_reasoning": 0.85, "spatial_reasoning": 0.7},
+        "related_interests": ["engineering"]
+    },
+    # ── Law & Public Policy ──
+    "Law (LLB)": {
+        "required_skills": {"verbal_reasoning": 0.9, "logical_reasoning": 0.85, "communication": 0.85, "persistence": 0.7},
+        "related_interests": ["law"]
+    },
+    "Civil Service (CSS)": {
+        "required_skills": {"verbal_reasoning": 0.8, "planning": 0.75, "leadership": 0.7, "communication": 0.7},
+        "related_interests": ["law", "business"]
+    },
+    # ── Business & Finance ──
+    "Business Administration": {
+        "required_skills": {"leadership": 0.8, "communication": 0.75, "risk_tolerance": 0.7},
+        "related_interests": ["business"]
+    },
+    "Chartered Accountancy / Finance": {
+        "required_skills": {"numerical_reasoning": 0.9, "attention_to_detail": 0.85, "persistence": 0.8},
+        "related_interests": ["business"]
+    },
+    "Entrepreneurship": {
+        "required_skills": {"risk_tolerance": 0.9, "creativity": 0.7, "leadership": 0.75},
+        "related_interests": ["business"]
+    },
+    # ── Architecture, Design, Arts & Media ──
     "Architecture": {
         "required_skills": {"spatial_reasoning": 0.9, "creativity": 0.8, "logical_reasoning": 0.7},
-        "related_interests": ["architecture", "arts", "design"]
+        "related_interests": ["architecture", "arts"]
     },
     "UX/UI Design": {
         "required_skills": {"creativity": 0.9, "empathy": 0.8, "pattern_recognition": 0.7},
-        "related_interests": ["arts", "technology", "design", "psychology"]
+        "related_interests": ["arts", "technology"]
     },
-    "Software Engineering": {
-        "required_skills": {"logical_reasoning": 0.9, "problem_solving": 0.9, "persistence": 0.85},
-        "related_interests": ["technology"]
+    "Visual & Fine Arts": {
+        "required_skills": {"creativity": 0.9, "aesthetic_judgment": 0.85},
+        "related_interests": ["arts"]
     },
-    "Medicine": {
-        "required_skills": {"logical_reasoning": 0.8, "memory": 0.9, "empathy": 0.8, "persistence": 0.9},
-        "related_interests": ["medicine", "science", "helping_people"]
-    }
+    "Creative Writing / Journalism / Media": {
+        "required_skills": {"verbal_reasoning": 0.85, "creativity": 0.8, "communication": 0.8},
+        "related_interests": ["arts", "languages"]
+    },
+    # ── Education & Social Sciences ──
+    "Teaching / Education": {
+        "required_skills": {"communication": 0.85, "empathy": 0.75, "persistence": 0.7},
+        "related_interests": ["psychology", "languages"]
+    },
+    "Psychology": {
+        "required_skills": {"empathy": 0.85, "analytical_thinking": 0.75, "communication": 0.7},
+        "related_interests": ["psychology"]
+    },
+    # ── Science (standalone) ──
+    "Scientific Research": {
+        "required_skills": {"numerical_reasoning": 0.85, "analytical_thinking": 0.8, "persistence": 0.75},
+        "related_interests": ["science"]
+    },
+    "Languages / Linguistics": {
+        "required_skills": {"verbal_reasoning": 0.9, "analytical_thinking": 0.7, "communication": 0.8},
+        "related_interests": ["languages"]
+    },
 }
 
 @app.post("/submit_activity")
@@ -358,7 +440,12 @@ def recommend_careers(profile: UserProfile):
             ability_match = earned_weight / total_weight if total_weight > 0 else 0.0
             
         # 3. Final Compatibility Score
-        compatibility = (interest_match * 0.4) + (ability_match * 0.6)
+        # Interest suppression gate: low interest match heavily suppresses the career
+        # instead of just underweighting it — this prevents "arts interest → Medicine" errors
+        if interest_match < 0.15:
+            compatibility = ability_match * 0.15  # heavily suppressed
+        else:
+            compatibility = (interest_match * 0.4) + (ability_match * 0.6)
         
         # Calculate a pseudo-confidence based on how many required skills the user actually has in their profile
         known_skills_count = sum(1 for s in required_skills.keys() if s in profile.abilities)
@@ -373,7 +460,7 @@ def recommend_careers(profile: UserProfile):
     # Sort by compatibility descending
     results.sort(key=lambda x: x["compatibility"], reverse=True)
     
-    return {"recommendations": results[:3]}
+    return {"recommendations": results}  # full ranked list — frontend slices as needed
 
 @app.post("/next_activity")
 def next_activity(profile: UserProfile):

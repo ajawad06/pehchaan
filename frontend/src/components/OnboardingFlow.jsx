@@ -13,6 +13,8 @@ const INTEREST_CATEGORIES = [
   { id: 'science', icon: '🔬', label: 'Science & Research' },
   { id: 'business', icon: '📊', label: 'Business & Finance' },
   { id: 'psychology', icon: '🧠', label: 'Psychology' },
+  { id: 'law', icon: '⚖️', label: 'Law & Public Policy' },
+  { id: 'engineering', icon: '⚙️', label: 'Engineering' },
 ]
 
 const CAREER_VALUES = [

@@ -17,6 +17,9 @@ import MemoryGame from './components/MemoryGame'
 import AttentionGame from './components/AttentionGame'
 import LearningAgility from './components/LearningAgility'
 import InstinctSwipe from './components/InstinctSwipe'
+import CreativeComposition from './components/CreativeComposition'
+import NarrativeBuilder from './components/NarrativeBuilder'
+import EmpathyScenario from './components/EmpathyScenario'
 import { useOfflineSync } from './services/offlineQueue'
 
 import './index.css'
@@ -48,6 +51,9 @@ function App() {
           <Route path="/data-detective" element={<DataDetective />} />
           <Route path="/numerical-reasoning" element={<NumericalReasoning />} />
           <Route path="/visual-spatial" element={<VisualSpatial />} />
+          <Route path="/creative-composition" element={<CreativeComposition />} />
+          <Route path="/narrative-builder" element={<NarrativeBuilder />} />
+          <Route path="/empathy-scenario" element={<EmpathyScenario />} />
           <Route path="/career-simulation" element={<CareerSimulation />} />
           <Route path="/results" element={<ResultsScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />

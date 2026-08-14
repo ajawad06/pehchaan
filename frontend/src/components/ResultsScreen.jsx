@@ -3,10 +3,60 @@ import { useSession } from '../store/SessionContext'
 import { saveRecommendations } from '../services/db'
 import { motion, AnimatePresence } from 'framer-motion'
 
+// All skills used anywhere in the taxonomy — used to build the abilities object
+// from traits without a hardcoded shortlist.
+const ALL_TAXONOMY_SKILLS = [
+  'numerical_reasoning', 'analytical_thinking', 'creativity', 'logical_reasoning',
+  'spatial_reasoning', 'empathy', 'memory', 'persistence', 'pattern_recognition',
+  'verbal_reasoning', 'aesthetic_judgment', 'communication', 'risk_tolerance',
+  'leadership', 'planning', 'systems_thinking', 'abstract_reasoning',
+  'adversarial_thinking', 'attention_to_detail', 'decision_making', 'learning_agility',
+  'working_memory', 'processing_speed',
+]
+
+// Domain cluster map — which careers belong to which recognizable cluster.
+// Used to build the comparison block when careers in the same cluster are close.
+const DOMAIN_CLUSTERS = {
+  technology: ['Software Engineering', 'Computer Science / Research', 'Data Science', 'Artificial Intelligence / ML', 'Cybersecurity'],
+  medicine:   ['Medicine (MBBS)', 'Pharmacy', 'Nursing / Allied Health'],
+  business:   ['Business Administration', 'Chartered Accountancy / Finance', 'Entrepreneurship', 'Civil Service (CSS)'],
+  law:        ['Law (LLB)', 'Civil Service (CSS)'],
+  engineering: ['Civil Engineering', 'Electrical / Mechanical Engineering'],
+  arts:       ['Architecture', 'UX/UI Design', 'Visual & Fine Arts', 'Creative Writing / Journalism / Media'],
+}
+
+// Key distinguishing traits per career (shown in comparison block)
+const CAREER_DISTINGUISHERS = {
+  'Software Engineering':           'systems_thinking · logical_reasoning · persistence',
+  'Computer Science / Research':    'abstract_reasoning · logical_reasoning · numerical_reasoning',
+  'Data Science':                   'numerical_reasoning · pattern_recognition · analytical_thinking',
+  'Artificial Intelligence / ML':   'pattern_recognition · analytical_thinking · numerical_reasoning',
+  'Cybersecurity':                  'adversarial_thinking · attention_to_detail · persistence',
+  'Medicine (MBBS)':                'memory · empathy · persistence',
+  'Pharmacy':                       'memory · attention_to_detail · numerical_reasoning',
+  'Nursing / Allied Health':        'empathy · persistence · attention_to_detail',
+  'Civil Engineering':              'spatial_reasoning · numerical_reasoning · planning',
+  'Electrical / Mechanical Engineering': 'logical_reasoning · numerical_reasoning · spatial_reasoning',
+  'Law (LLB)':                      'verbal_reasoning · logical_reasoning · communication',
+  'Civil Service (CSS)':            'verbal_reasoning · planning · leadership',
+  'Business Administration':        'leadership · communication · risk_tolerance',
+  'Chartered Accountancy / Finance':'numerical_reasoning · attention_to_detail · persistence',
+  'Entrepreneurship':               'risk_tolerance · creativity · leadership',
+  'Architecture':                   'spatial_reasoning · creativity · logical_reasoning',
+  'UX/UI Design':                   'creativity · empathy · pattern_recognition',
+  'Visual & Fine Arts':             'creativity · aesthetic_judgment',
+  'Creative Writing / Journalism / Media': 'verbal_reasoning · creativity · communication',
+  'Teaching / Education':           'communication · empathy · persistence',
+  'Psychology':                     'empathy · analytical_thinking · communication',
+  'Scientific Research':            'numerical_reasoning · analytical_thinking · persistence',
+  'Languages / Linguistics':        'verbal_reasoning · analytical_thinking · communication',
+}
+
 export default function ResultsScreen() {
   const { traits, sessionId } = useSession()
   const [recommendations, setRecommendations] = useState(null)
   const [comprehensiveData, setComprehensiveData] = useState(null)
+  const [allResults, setAllResults] = useState([])  // full ranked list for domain comparison
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -55,16 +105,22 @@ export default function ResultsScreen() {
         
         // ─── Step 3: Fallback to /recommend_careers (cold-start taxonomy) ───
         if (!ranked_clusters) {
+          // Build abilities from ALL measured traits dynamically — no hardcoded shortlist.
+          // Skills that are stored as 0-100 in traits get divided by 100.
+          // Skills already stored as 0-1 (from rubric activities) pass through directly.
+          const abilities = {}
+          ALL_TAXONOMY_SKILLS.forEach(skill => {
+            const raw = traits[skill]
+            if (raw !== undefined && raw !== 0) {
+              // Heuristic: if a value is > 1.0 it was stored as 0-100 → normalize
+              abilities[skill] = raw > 1.0 ? raw / 100 : raw
+            }
+          })
+
           const profile = {
             user_id: sessionId || "anonymous",
             interests: traits.interests || { "technology": 0.5 },
-            abilities: {
-              numerical_reasoning: traitVector.numerical_reasoning,
-              analytical_thinking: traitVector.analytical_thinking,
-              creativity: traitVector.creativity,
-              logical_reasoning: (traits.logical_reasoning || 0) / 100,
-              spatial_reasoning: (traits.spatial_reasoning || 0) / 100,
-            },
+            abilities,
             career_values: traits.career_values || []
           }
           
@@ -80,11 +136,14 @@ export default function ResultsScreen() {
           }
           
           const recData = await recRes.json()
-          // Reshape taxonomy output to match /predict shape
-          ranked_clusters = recData.recommendations.map(r => ({
+          // Store full ranked list for the domain comparison block
+          const fullList = recData.recommendations.map(r => ({
             cluster_id: r.career,
             confidence: r.compatibility / 100
           }))
+          setAllResults(fullList)
+          // Reshape taxonomy output to match /predict shape
+          ranked_clusters = fullList.slice(0, 5)
           model_version = 'cold_start_v1'
         }
         
@@ -144,6 +203,27 @@ export default function ResultsScreen() {
     
     fetchResults()
   }, [traits, sessionId])
+
+  // ─── Domain Comparison Block helpers ───────────────────────────────────────
+  // Determines which domain cluster the top result belongs to, then gathers
+  // all careers from that cluster that appear in allResults (full ranked list).
+  function getDomainComparison(topCareer, fullList) {
+    for (const [domain, careers] of Object.entries(DOMAIN_CLUSTERS)) {
+      if (careers.includes(topCareer)) {
+        const clusterEntries = fullList
+          .filter(r => careers.includes(r.cluster_id))
+          .sort((a, b) => b.confidence - a.confidence)
+        return { domain, clusterEntries }
+      }
+    }
+    return null
+  }
+
+  const domainComparison = recommendations && allResults.length > 0
+    ? getDomainComparison(recommendations[0]?.cluster_id, allResults)
+    : null
+
+
 
   return (
     <div className="flex flex-col items-center p-8 min-h-screen bg-ivory text-green-dark relative overflow-y-auto">
@@ -333,6 +413,63 @@ export default function ResultsScreen() {
                 ))}
               </div>
 
+              {/* ── Domain Sub-specialization Comparison Block ── */}
+              {domainComparison && domainComparison.clusterEntries.length > 1 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.55 }}
+                  className="bg-soft-white border border-border-glass rounded-[28px] p-8 mt-2"
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-2 h-8 bg-green-primary rounded-full" />
+                    <div>
+                      <p className="text-xs uppercase tracking-widest font-bold text-text-muted">Domain Breakdown</p>
+                      <h3 className="text-xl font-medium text-green-dark capitalize">
+                        All paths within {domainComparison.domain} — ranked for you
+                      </h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-text-muted mb-6 leading-relaxed">
+                    These paths belong to the same broad field. Here's how your profile scores on each — so you can see <em>why</em> one ranks above another for you specifically.
+                  </p>
+
+                  <div className="space-y-5">
+                    {domainComparison.clusterEntries.map((entry, i) => {
+                      const pct = Math.round(entry.confidence * 100)
+                      const maxPct = Math.round(domainComparison.clusterEntries[0].confidence * 100)
+                      const barWidth = maxPct > 0 ? (pct / maxPct) * 100 : 0
+                      return (
+                        <div key={entry.cluster_id}>
+                          <div className="flex justify-between items-baseline mb-1">
+                            <span className={`text-sm font-semibold ${i === 0 ? 'text-green-primary' : 'text-green-dark'}`}>
+                              {i === 0 && <span className="mr-2 text-xs bg-green-primary text-ivory px-2 py-0.5 rounded-full">Top</span>}
+                              {entry.cluster_id}
+                            </span>
+                            <span className={`text-lg font-bold ${i === 0 ? 'text-green-primary' : 'text-green-secondary'}`}>
+                              {pct}%
+                            </span>
+                          </div>
+                          {/* Comparison bar */}
+                          <div className="h-2 bg-green-primary/10 rounded-full overflow-hidden mb-1">
+                            <div
+                              className={`h-full rounded-full transition-all duration-700 ${i === 0 ? 'bg-green-primary' : 'bg-sage/60'}`}
+                              style={{ width: `${barWidth}%` }}
+                            />
+                          </div>
+                          {/* Distinguishing traits */}
+                          {CAREER_DISTINGUISHERS[entry.cluster_id] && (
+                            <p className="text-xs text-text-muted">
+                              Key traits: <span className="font-medium text-green-secondary">{CAREER_DISTINGUISHERS[entry.cluster_id]}</span>
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+              )}
+
               {/* Uncertainty / Next Steps */}
               {comprehensiveData?.uncertainty && (
                 <motion.div
@@ -343,6 +480,7 @@ export default function ResultsScreen() {
                   <p className="text-green-dark/80 leading-relaxed text-sm">{comprehensiveData.uncertainty}</p>
                 </motion.div>
               )}
+
 
               {/* Share / Download CTA */}
               <motion.div
