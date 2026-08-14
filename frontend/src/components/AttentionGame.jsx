@@ -76,26 +76,32 @@ export default function AttentionGame() {
       completed: true
     }
 
+    // Score from actual performance — unconditional
+    // accuracy 0-1, mistakes penalise, time bonus for finishing fast
+    const timeBonus = timeLeft > 5 ? 0.1 : 0
+    const speedScore = Math.round(Math.max(10, Math.min(100, (accuracy + timeBonus) * 100)))
+    const attentionScore = Math.round(Math.max(10, Math.min(100, accuracy * 100)))
+
+    // Always write before the async call so it can't be skipped
+    updateTraits({
+      processing_speed: speedScore,
+      attention_to_detail: attentionScore,
+      persistence: attentionScore,   // sustained attention = persistence proxy
+    })
+
     try {
       const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
       const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
-      const response = await fetch(`${API_URL}/submit_activity`, {
+      await fetch(`${API_URL}/submit_activity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: sessionId || 'anonymous',
           activity_id: 'attention_game',
           difficulty_level: 2,
-          telemetry: telemetry
+          telemetry
         })
       })
-      
-      const data = await response.json()
-      
-      if (data.estimated_skill_delta) {
-        const newSpeed = Math.max(0, Math.min(100, 50 + (data.estimated_skill_delta * 10)))
-        updateTraits({ processing_speed: newSpeed })
-      }
     } catch (error) {
       console.error("Failed to send telemetry:", error)
     }

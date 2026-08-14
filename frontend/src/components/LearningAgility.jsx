@@ -63,26 +63,27 @@ export default function LearningAgility() {
       completed: true
     }
 
+    // Score from actual performance — unconditional
+    // Penalise wrong attempts, reward speed and accuracy
+    const agilityScore = Math.round(Math.max(10, Math.min(100,
+      (accuracy * 0.7 + Math.max(0, 1 - timeElapsed / 120) * 0.3) * 100
+    )))
+    // Always write first — can't be gated on API response
+    updateTraits({ learning_agility: agilityScore })
+
     try {
       const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
       const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
-      const response = await fetch(`${API_URL}/submit_activity`, {
+      await fetch(`${API_URL}/submit_activity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: sessionId || 'anonymous',
           activity_id: 'learning_agility',
           difficulty_level: traits?.age_group?.includes('14') ? 1 : 3,
-          telemetry: telemetry
+          telemetry
         })
       })
-      
-      const data = await response.json()
-      
-      if (data.estimated_skill_delta) {
-        const newScore = Math.max(0, Math.min(100, 50 + (data.estimated_skill_delta * 10)))
-        updateTraits({ learning_agility: newScore })
-      }
     } catch (error) {
       console.error("Failed to send telemetry:", error)
     }

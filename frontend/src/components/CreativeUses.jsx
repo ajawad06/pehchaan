@@ -24,11 +24,11 @@ export default function CreativeUses() {
       setTimeElapsed(elapsed)
       if (elapsed >= MAX_TIME) {
         setCompleted(true)
-        submitTelemetry()
+        submitTelemetry(ideas)  // pass current ideas to avoid stale closure
       }
     }, 1000)
     return () => clearInterval(timer)
-  }, [startTs, completed])
+  }, [startTs, completed, ideas])
 
   const handleAddIdea = (e) => {
     e.preventDefault()
@@ -38,46 +38,43 @@ export default function CreativeUses() {
     }
   }
 
-  const submitTelemetry = async () => {
+  const submitTelemetry = async (currentIdeas = ideas) => {
     setCompleted(true)
     const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
     const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
     
-    // Base score on quantity of ideas generated within 60s
-    // Real ML would use Gemini to judge uniqueness, but for MVP we use count + length
-    let estimatedCreativity = 0.5
-    if (ideas.length >= 8) estimatedCreativity = 1.0
-    else if (ideas.length >= 5) estimatedCreativity = 0.8
-    else if (ideas.length >= 3) estimatedCreativity = 0.6
-    
+    // Direct score from quantity — unconditional, uses currentIdeas to avoid stale state
+    let creativityScore = 10  // minimum — they showed up
+    if (currentIdeas.length >= 8) creativityScore = 100
+    else if (currentIdeas.length >= 6) creativityScore = 85
+    else if (currentIdeas.length >= 4) creativityScore = 68
+    else if (currentIdeas.length >= 2) creativityScore = 50
+    else if (currentIdeas.length >= 1) creativityScore = 35
+
+    // Write unconditionally before the async call
+    updateTraits({ creativity: creativityScore })
+
     const telemetry = {
       response_time_sec: timeElapsed,
       hints_used: 0,
-      accuracy: estimatedCreativity,
-      attempts: ideas.length,
+      accuracy: creativityScore / 100,
+      attempts: currentIdeas.length,
       completed: true,
       quit: false,
-      raw_ideas: ideas
+      raw_ideas: currentIdeas
     }
 
     try {
-      const response = await fetch(`${API_URL}/submit_activity`, {
+      await fetch(`${API_URL}/submit_activity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: sessionId || 'anonymous',
           activity_id: 'creative_uses_brick',
           difficulty_level: traits?.age_group?.includes('14') ? 1 : 3,
-          telemetry: telemetry
+          telemetry
         })
       })
-      
-      const data = await response.json()
-      
-      if (data.estimated_skill_delta) {
-        const newScore = Math.max(0, Math.min(100, (traits.creativity || 50) + (data.estimated_skill_delta * 10) + (ideas.length * 2)))
-        updateTraits({ creativity: newScore })
-      }
     } catch (error) {
       console.error("Failed to send telemetry to backend:", error)
     }
@@ -162,7 +159,7 @@ export default function CreativeUses() {
           <span className="text-text-muted text-sm font-medium">Ideas generated: {ideas.length}</span>
           {!completed && (
             <button 
-              onClick={submitTelemetry}
+              onClick={() => submitTelemetry(ideas)}
               className="text-green-secondary border border-border-glass px-5 py-2 rounded-full hover:bg-green-secondary hover:text-ivory transition-colors text-sm font-medium"
             >
               Finish Early

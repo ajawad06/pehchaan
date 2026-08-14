@@ -95,7 +95,7 @@ export default function DataDetective() {
   const handleAnswer = async (selected) => {
     const isCorrect = selected === answer
     const latencySec = (Date.now() - startTs) / 1000
-    const finalAccuracy = isCorrect ? Math.max(1.0 - (attempts * 0.3) - (hintsUsed * 0.2), 0.2) : 0.0
+    const finalAccuracy = isCorrect ? Math.max(1.0 - (attempts * 0.3) - (hintsUsed * 0.2), 0.2) : 0.2
 
     const telemetry = {
       response_time_sec: latencySec,
@@ -108,24 +108,23 @@ export default function DataDetective() {
       selected_answer: selected
     }
 
-    // Fire-and-forget
+    // Write traits unconditionally — never gate on API response
+    const normalizedLatency = Math.min(latencySec / 120, 1.0)
+    const analyticalFromTelemetry = (finalAccuracy * 0.7) + ((1 - normalizedLatency) * 0.3)
+    updateTraits({
+      analytical_thinking: Math.round(analyticalFromTelemetry * 100),
+    })
+
+    // Fire-and-forget telemetry — doesn't block navigation
     ;(async () => {
       try {
         const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
         const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
-        const response = await fetch(`${API_URL}/submit_activity`, {
+        await fetch(`${API_URL}/submit_activity`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: sessionId || 'anonymous', activity_id: 'data_detective_sim', difficulty_level: 3, telemetry })
         })
-        const data = await response.json()
-        if (data.estimated_skill_delta) {
-          const delta = data.estimated_skill_delta * 10
-          const avgNumerical = ((traits.numerical_reasoning || 50) + Math.max(0, Math.min(100, (traits.numerical_reasoning || 50) + delta))) / 2
-          const normalizedLatency = Math.min(latencySec / 120, 1.0)
-          const analyticalFromTelemetry = (finalAccuracy * 0.7) + ((1 - normalizedLatency) * 0.3)
-          updateTraits({ analytical_thinking: Math.round(analyticalFromTelemetry * 100), numerical_reasoning: Math.round(avgNumerical) })
-        }
       } catch (error) { console.warn('Telemetry send failed silently:', error) }
       if (sessionId) await recordResponse(sessionId, 'data_detective', telemetry)
     })()

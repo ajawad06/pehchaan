@@ -63,29 +63,30 @@ export default function MemoryGame() {
       completed: true
     }
 
+    // Score from actual game performance — unconditional, never 0 unless game errors
+    // Levels: 3-char=25, 4-char=50, 5-char=75, 6-char=100 → spans 25-100
+    const rawMemScore = Math.round((finalScore / SEQUENCES.length) * 100)
+    const clampedScore = Math.max(10, Math.min(100, rawMemScore))
+
     try {
       const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
       const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
-      const response = await fetch(`${API_URL}/submit_activity`, {
+      await fetch(`${API_URL}/submit_activity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: sessionId || 'anonymous',
           activity_id: 'memory_game',
           difficulty_level: traits?.age_group?.includes('14') ? 1 : 3,
-          telemetry: telemetry
+          telemetry
         })
       })
-      
-      const data = await response.json()
-      
-      if (data.estimated_skill_delta) {
-        const newScore = Math.max(0, Math.min(100, (traits.working_memory || 50) + (data.estimated_skill_delta * 10)))
-        updateTraits({ working_memory: newScore })
-      }
     } catch (error) {
       console.error("Failed to send telemetry:", error)
     }
+
+    // Always write — trait must never stay at 0
+    updateTraits({ working_memory: clampedScore, memory: clampedScore })
 
     if (sessionId) {
       await recordResponse(sessionId, 'memory_game', telemetry)
