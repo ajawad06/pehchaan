@@ -83,7 +83,7 @@ export default function EmpathyScenario() {
             scenario_id: scenario.id,
             raw_response: text,
             rubric_scores: scores,
-          })
+          }).catch(e => console.error("Firestore error:", e))
           await updateSessionProgress(sessionId, 'empathy_scenario')
         }
       } catch (e) {
@@ -162,3 +162,4 @@ export default function EmpathyScenario() {
     </div>
   )
 }
+

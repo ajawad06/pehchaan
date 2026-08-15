@@ -80,7 +80,7 @@ export default function VisualSpatial() {
     }
 
     if (sessionId) {
-      await recordResponse(sessionId, 'visual_spatial', telemetry)
+      await recordResponse(sessionId, 'visual_spatial', telemetry).catch(e => console.error("Firestore error:", e))
     }
     
     setTimeout(() => {
@@ -114,7 +114,7 @@ export default function VisualSpatial() {
           updateTraits({ spatial_reasoning: newScore })
         }
       } catch (e) { console.warn('Telemetry failed silently:', e) }
-      if (sessionId) await recordResponse(sessionId, 'visual_spatial', { was_correct: isCorrect })
+      if (sessionId) await recordResponse(sessionId, 'visual_spatial', { was_correct: isCorrect }).catch(e => console.error("Firestore error:", e))
     })()
 
     // Always advance
@@ -169,3 +169,6 @@ export default function VisualSpatial() {
     </div>
   )
 }
+
+
+

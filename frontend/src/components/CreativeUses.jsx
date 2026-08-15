@@ -80,7 +80,7 @@ export default function CreativeUses() {
     }
 
     if (sessionId) {
-      await recordResponse(sessionId, 'creative_uses_brick', telemetry)
+      await recordResponse(sessionId, 'creative_uses_brick', telemetry).catch(e => console.error("Firestore error:", e))
     }
     
     setTimeout(() => {
@@ -170,3 +170,6 @@ export default function CreativeUses() {
     </div>
   )
 }
+
+
+

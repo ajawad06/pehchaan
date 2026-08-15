@@ -107,7 +107,7 @@ export default function AttentionGame() {
     }
 
     if (sessionId) {
-      await recordResponse(sessionId, 'attention_game', telemetry)
+      await recordResponse(sessionId, 'attention_game', telemetry).catch(e => console.error("Firestore error:", e))
     }
     
     setTimeout(() => {
@@ -175,3 +175,6 @@ export default function AttentionGame() {
     </div>
   )
 }
+
+
+

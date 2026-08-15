@@ -89,7 +89,7 @@ export default function MemoryGame() {
     updateTraits({ working_memory: clampedScore, memory: clampedScore })
 
     if (sessionId) {
-      await recordResponse(sessionId, 'memory_game', telemetry)
+      await recordResponse(sessionId, 'memory_game', telemetry).catch(e => console.error("Firestore error:", e))
     }
     
     setTimeout(() => {
@@ -159,3 +159,6 @@ export default function MemoryGame() {
     </div>
   )
 }
+
+
+

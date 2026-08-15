@@ -47,7 +47,7 @@ export default function DecisionLab() {
         scenario: SCENARIOS[current].id,
         raw_response: option.text,
         traits_assigned: option.traits
-      })
+      }).catch(e => console.error("Firestore error:", e))
     }
 
     if (current + 1 < SCENARIOS.length) {
@@ -114,3 +114,4 @@ export default function DecisionLab() {
     </div>
   )
 }
+

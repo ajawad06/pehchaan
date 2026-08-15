@@ -77,6 +77,16 @@ export const SessionProvider = ({ children }) => {
     }
   })
 
+  const [activityQueue, setActivityQueue] = useState(() => {
+    const saved = localStorage.getItem('pehchaan_activityQueue')
+    return saved ? JSON.parse(saved) : []
+  })
+  
+  const [currentActivityIndex, setCurrentActivityIndex] = useState(() => {
+    const saved = localStorage.getItem('pehchaan_currentActivityIndex')
+    return saved ? parseInt(saved, 10) : 0
+  })
+
   // Persist state changes
   useEffect(() => {
     if (sessionId) localStorage.setItem('pehchaan_sessionId', sessionId)
@@ -90,8 +100,13 @@ export const SessionProvider = ({ children }) => {
     localStorage.setItem('pehchaan_traits', JSON.stringify(traits))
   }, [traits])
 
-  const [activityQueue, setActivityQueue] = useState([])
-  const [currentActivityIndex, setCurrentActivityIndex] = useState(0)
+  useEffect(() => {
+    localStorage.setItem('pehchaan_activityQueue', JSON.stringify(activityQueue))
+  }, [activityQueue])
+
+  useEffect(() => {
+    localStorage.setItem('pehchaan_currentActivityIndex', currentActivityIndex.toString())
+  }, [currentActivityIndex])
 
   useEffect(() => {
     async function initUser() {

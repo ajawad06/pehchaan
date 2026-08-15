@@ -46,7 +46,7 @@ export default function CareerSimulation() {
           await recordResponse(sessionId, 'career_simulation', {
             raw_response: text,
             rubric_scores: scores,
-          })
+          }).catch(e => console.error("Firestore error:", e))
           await updateSessionProgress(sessionId, 'career_simulation')
         }
       } catch (e) {
@@ -105,3 +105,4 @@ export default function CareerSimulation() {
     </div>
   )
 }
+

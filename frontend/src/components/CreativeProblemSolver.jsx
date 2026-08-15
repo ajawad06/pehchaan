@@ -79,7 +79,7 @@ export default function CreativeProblemSolver() {
         await recordResponse(sessionId, 'creative_problem_solver', {
           scenario_id: scenario.id,
           raw_response: text,
-        })
+        }).catch(e => console.error("Firestore error:", e))
         await updateSessionProgress(sessionId, 'creative_problem_solver')
       }
     })()
@@ -144,3 +144,4 @@ export default function CreativeProblemSolver() {
     </div>
   )
 }
+

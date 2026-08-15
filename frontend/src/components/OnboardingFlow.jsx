@@ -81,7 +81,7 @@ export default function OnboardingFlow() {
           age_group: localAgeGroup,
           interests: selectedInterests,
           values: selectedValues
-        })
+        }).catch(e => console.error("Firestore error:", e))
       }
       
       const queue = generateFlow(interestProfile)
@@ -187,3 +187,4 @@ export default function OnboardingFlow() {
     </div>
   )
 }
+

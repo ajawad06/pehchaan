@@ -80,7 +80,7 @@ export default function NumericalReasoning() {
       } catch (error) {
         console.warn('NumericalReasoning telemetry failed silently:', error)
       }
-      if (sessionId) await recordResponse(sessionId, 'numerical_reasoning', telemetry)
+      if (sessionId) await recordResponse(sessionId, 'numerical_reasoning', telemetry).catch(e => console.error("Firestore error:", e))
     })()
 
     setTimeout(() => {
@@ -155,3 +155,6 @@ export default function NumericalReasoning() {
     </div>
   )
 }
+
+
+

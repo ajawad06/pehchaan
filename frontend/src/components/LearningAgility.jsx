@@ -89,7 +89,7 @@ export default function LearningAgility() {
     }
 
     if (sessionId) {
-      await recordResponse(sessionId, 'learning_agility', telemetry)
+      await recordResponse(sessionId, 'learning_agility', telemetry).catch(e => console.error("Firestore error:", e))
     }
     
     setTimeout(() => {
@@ -174,3 +174,6 @@ export default function LearningAgility() {
     </div>
   )
 }
+
+
+

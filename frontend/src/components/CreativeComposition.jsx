@@ -49,7 +49,7 @@ export default function CreativeComposition() {
           await recordResponse(sessionId, 'creative_composition', {
             raw_response: text,
             rubric_scores: scores,
-          })
+          }).catch(e => console.error("Firestore error:", e))
           await updateSessionProgress(sessionId, 'creative_composition')
         }
       } catch (e) {
@@ -118,3 +118,4 @@ export default function CreativeComposition() {
     </div>
   )
 }
+

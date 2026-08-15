@@ -46,7 +46,7 @@ export default function PersonalityAssessment() {
       })
 
       if (sessionId) {
-        await recordResponse(sessionId, 'personality_assessment', telemetry)
+        await recordResponse(sessionId, 'personality_assessment', telemetry).catch(e => console.error("Firestore error:", e))
       }
       
       advanceFlow(navigate)
@@ -96,3 +96,6 @@ export default function PersonalityAssessment() {
     </div>
   )
 }
+
+
+

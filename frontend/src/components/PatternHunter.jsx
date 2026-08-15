@@ -112,7 +112,7 @@ export default function PatternHunter() {
 
     // Save backup to Firebase
     if (sessionId) {
-      await recordResponse(sessionId, `pattern_hunter_q${current+1}`, telemetry)
+      await recordResponse(sessionId, `pattern_hunter_q${current+1}`, telemetry).catch(e => console.error("Firestore error:", e))
     }
   }
 
@@ -153,7 +153,7 @@ export default function PatternHunter() {
           body: JSON.stringify({ user_id: sessionId || 'anonymous', activity_id: 'pattern_hunter', difficulty_level: 3, telemetry })
         })
       } catch (e) { console.warn('Telemetry send failed silently:', e) }
-      if (sessionId) await recordResponse(sessionId, `pattern_hunter_q${current+1}`, telemetry)
+      if (sessionId) await recordResponse(sessionId, `pattern_hunter_q${current+1}`, telemetry).catch(e => console.error("Firestore error:", e))
     })()
 
     setAttempts(a => a + 1)
@@ -238,3 +238,6 @@ export default function PatternHunter() {
     </div>
   )
 }
+
+
+

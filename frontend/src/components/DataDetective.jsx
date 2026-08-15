@@ -88,7 +88,7 @@ export default function DataDetective() {
     }
 
     if (sessionId) {
-      await recordResponse(sessionId, 'data_detective', telemetry)
+      await recordResponse(sessionId, 'data_detective', telemetry).catch(e => console.error("Firestore error:", e))
     }
   }
 
@@ -126,7 +126,7 @@ export default function DataDetective() {
           body: JSON.stringify({ user_id: sessionId || 'anonymous', activity_id: 'data_detective_sim', difficulty_level: 3, telemetry })
         })
       } catch (error) { console.warn('Telemetry send failed silently:', error) }
-      if (sessionId) await recordResponse(sessionId, 'data_detective', telemetry)
+      if (sessionId) await recordResponse(sessionId, 'data_detective', telemetry).catch(e => console.error("Firestore error:", e))
     })()
 
     setAttempts(a => a + 1)
@@ -223,3 +223,6 @@ export default function DataDetective() {
     </div>
   )
 }
+
+
+

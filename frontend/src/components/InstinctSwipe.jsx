@@ -104,7 +104,7 @@ export default function InstinctSwipe() {
         riasec_normalized: normalized,
         total_cards: CARDS.length,
         completed: true
-      })
+      }).catch(e => console.error("Firestore error:", e))
     }
 
     advanceFlow(navigate)
@@ -179,3 +179,4 @@ export default function InstinctSwipe() {
     </div>
   )
 }
+
