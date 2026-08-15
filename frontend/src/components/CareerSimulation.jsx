@@ -10,50 +10,53 @@ export default function CareerSimulation() {
   const navigate = useNavigate()
 
   const handleSubmit = async () => {
+    if (text.length < 10) return
     setIsSubmitting(true)
-    
-    try {
-      const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-      const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
-      const response = await fetch(`${API_URL}/score`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          activity_id: 'career_simulation',
-          response_text: text,
-          rubric: ['domain_exposure']
-        })
-      })
-      
-      const scores = await response.json()
-      
-      const newTraits = { ...traits, ...scores }
-      updateTraits(scores)
-      
-      if (sessionId) {
-        await recordResponse(sessionId, 'career_simulation', {
-          raw_response: text,
-          rubric_scores: scores
-        })
-        await updateSessionProgress(sessionId, 'career_simulation')
-        
-        // Final activity, save the complete trait vector
-        await saveTraitVector(sessionId, newTraits)
-      }
-      
-      advanceFlow(navigate)
-    } catch (e) {
-      console.error(e)
-      const fallback = { domain_exposure: 0.5 }
-      const newTraits = { ...traits, ...fallback }
-      updateTraits(fallback)
-      if (sessionId) {
-        await saveTraitVector(sessionId, newTraits)
-      }
-      advanceFlow(navigate)
-    } finally {
-      setIsSubmitting(false)
+
+    // Completing the simulation is itself strong domain-exposure evidence.
+    // Write unconditionally before any async call.
+    const localExposure = Math.min(1.0, text.trim().split(/\s+/).filter(Boolean).length / 80)
+    updateTraits({ domain_exposure: Math.max(0.6, localExposure) })
+
+    // Save the trait vector to Firestore immediately with what we have now
+    const snapshotTraits = { ...traits, domain_exposure: Math.max(0.6, localExposure) }
+    if (sessionId) {
+      saveTraitVector(sessionId, snapshotTraits).catch(e =>
+        console.warn('saveTraitVector failed:', e)
+      )
     }
+
+    // Fire-and-forget Gemini scoring + DB record
+    ;(async () => {
+      try {
+        const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+        const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
+        const response = await fetch(`${API_URL}/score`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            activity_id: 'career_simulation',
+            response_text: text,
+            rubric: ['domain_exposure'],
+          }),
+        })
+        const scores = await response.json()
+        updateTraits(scores)
+        if (sessionId) {
+          await recordResponse(sessionId, 'career_simulation', {
+            raw_response: text,
+            rubric_scores: scores,
+          })
+          await updateSessionProgress(sessionId, 'career_simulation')
+        }
+      } catch (e) {
+        console.warn('CareerSimulation Gemini scoring failed silently:', e)
+      }
+    })()
+
+    // Advance immediately
+    advanceFlow(navigate)
+    setIsSubmitting(false)
   }
 
   const topInterest = traits?.interests 

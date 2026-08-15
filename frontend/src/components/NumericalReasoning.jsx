@@ -43,10 +43,18 @@ export default function NumericalReasoning() {
     setCompleted(true)
     const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
     const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
-    
-    // Accuracy based on how many they got right
+
+    // Accuracy based on how many questions were answered correctly
     const accuracy = current / QUESTIONS.length;
-    
+    const normalizedTime = Math.min(timeElapsed / MAX_TIME, 1.0)
+
+    // Compute score unconditionally from local telemetry — never gated on API
+    // Reward accuracy (70%) + speed (30%), clamp 10-100
+    const rawScore = Math.round(Math.max(10, Math.min(100,
+      (accuracy * 0.7 + (1 - normalizedTime) * 0.3) * 100
+    )))
+    updateTraits({ numerical_reasoning: rawScore })
+
     const telemetry = {
       response_time_sec: timeElapsed,
       hints_used: 0,
@@ -56,32 +64,25 @@ export default function NumericalReasoning() {
       quit: false,
     }
 
-    try {
-      const response = await fetch(`${API_URL}/submit_activity`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: sessionId || 'anonymous',
-          activity_id: 'numerical_reasoning',
-          difficulty_level: traits?.age_group?.includes('14') ? 1 : 3,
-          telemetry: telemetry
+    // Fire-and-forget — never block navigation on this
+    ;(async () => {
+      try {
+        await fetch(`${API_URL}/submit_activity`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: sessionId || 'anonymous',
+            activity_id: 'numerical_reasoning',
+            difficulty_level: traits?.age_group?.includes('14') ? 1 : 3,
+            telemetry: telemetry
+          })
         })
-      })
-      
-      const data = await response.json()
-      
-      if (data.estimated_skill_delta) {
-        const newScore = Math.max(0, Math.min(100, (traits.numerical_reasoning || 50) + (data.estimated_skill_delta * 10) + (current * 5)))
-        updateTraits({ numerical_reasoning: newScore })
+      } catch (error) {
+        console.warn('NumericalReasoning telemetry failed silently:', error)
       }
-    } catch (error) {
-      console.error("Failed to send telemetry to backend:", error)
-    }
+      if (sessionId) await recordResponse(sessionId, 'numerical_reasoning', telemetry)
+    })()
 
-    if (sessionId) {
-      await recordResponse(sessionId, 'numerical_reasoning', telemetry)
-    }
-    
     setTimeout(() => {
       advanceFlow(navigate)
     }, 1500)

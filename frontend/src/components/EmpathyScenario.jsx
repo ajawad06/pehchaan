@@ -39,47 +39,61 @@ export default function EmpathyScenario() {
     if (text.length < 60) return
     setIsSubmitting(true)
 
-    try {
-      const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-      const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
+    // Write local defaults unconditionally — never block on Gemini latency
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length
+    const hasSentences = (text.match(/[.!?]/g) || []).length
+    // Empathy proxy: length + explicit people-language
+    const empathyProxy = Math.min(1.0,
+      (wordCount / 80) * 0.6 +
+      (text.toLowerCase().includes('feel') || text.toLowerCase().includes('understand') || text.toLowerCase().includes('listen') ? 0.25 : 0.05) +
+      0.1
+    )
+    const persistenceProxy  = Math.min(1.0, hasSentences / 8)
+    const communicationProxy = Math.min(1.0, wordCount / 70)
 
-      const response = await fetch(`${API_URL}/score`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          activity_id: 'empathy_scenario',
-          response_text: text,
-          rubric: ['empathy', 'communication', 'persistence', 'memory'],
-        }),
-      })
+    updateTraits({
+      empathy:            empathyProxy,
+      persistence:        persistenceProxy,
+      communication:      communicationProxy,
+      memory:             persistenceProxy * 0.8,    // systematic multi-step response = memory proxy
+      attention_to_detail: persistenceProxy,
+    })
 
-      const scores = await response.json()
-
-      // Also propagate attention_to_detail from how structured the response is
-      // (a proxy: Gemini scoring persistence captures systematic thinking)
-      updateTraits({
-        ...scores,
-        attention_to_detail: scores.persistence ?? 0.5, // persistence ≈ systematic follow-through
-      })
-
-      if (sessionId) {
-        await recordResponse(sessionId, 'empathy_scenario', {
-          scenario_id: scenario.id,
-          raw_response: text,
-          rubric_scores: scores,
+    // Fire-and-forget Gemini scoring
+    ;(async () => {
+      try {
+        const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+        const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
+        const response = await fetch(`${API_URL}/score`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            activity_id: 'empathy_scenario',
+            response_text: text,
+            rubric: ['empathy', 'communication', 'persistence', 'memory'],
+          }),
         })
-        await updateSessionProgress(sessionId, 'empathy_scenario')
+        const scores = await response.json()
+        updateTraits({
+          ...scores,
+          attention_to_detail: scores.persistence ?? persistenceProxy,
+        })
+        if (sessionId) {
+          await recordResponse(sessionId, 'empathy_scenario', {
+            scenario_id: scenario.id,
+            raw_response: text,
+            rubric_scores: scores,
+          })
+          await updateSessionProgress(sessionId, 'empathy_scenario')
+        }
+      } catch (e) {
+        console.warn('EmpathyScenario Gemini scoring failed silently:', e)
       }
+    })()
 
-      advanceFlow(navigate)
-    } catch (e) {
-      console.error('EmpathyScenario submit error:', e)
-      const fallback = { empathy: 0.5, communication: 0.5, persistence: 0.5, memory: 0.5, attention_to_detail: 0.5 }
-      updateTraits(fallback)
-      advanceFlow(navigate)
-    } finally {
-      setIsSubmitting(false)
-    }
+    // Advance immediately
+    advanceFlow(navigate)
+    setIsSubmitting(false)
   }
 
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length

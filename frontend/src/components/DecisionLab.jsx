@@ -27,14 +27,24 @@ const SCENARIOS = [
 export default function DecisionLab() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const [current, setCurrent] = useState(0)
+  // Accumulate trait contributions from every scenario choice
+  // { key: [value1, value2, ...] } — averaged at the end
+  const [traitAccum, setTraitAccum] = useState({})
   const navigate = useNavigate()
 
   const handleChoice = async (option) => {
-    // Update traits based on choice
-    updateTraits(option.traits)
+    // Merge this choice's traits into the accumulator
+    setTraitAccum(prev => {
+      const next = { ...prev }
+      Object.entries(option.traits).forEach(([key, val]) => {
+        next[key] = prev[key] ? [...prev[key], val] : [val]
+      })
+      return next
+    })
 
     if (sessionId) {
       await recordResponse(sessionId, 'decision_lab', {
+        scenario: SCENARIOS[current].id,
         raw_response: option.text,
         traits_assigned: option.traits
       })
@@ -43,6 +53,26 @@ export default function DecisionLab() {
     if (current + 1 < SCENARIOS.length) {
       setCurrent(c => c + 1)
     } else {
+      // All scenarios done — write single averaged trait update
+      setTraitAccum(prev => {
+        const averaged = {}
+        Object.entries(prev).forEach(([key, vals]) => {
+          // Include current choice's contribution too
+          const allVals = option.traits[key] !== undefined
+            ? [...(prev[key] || []), option.traits[key]]
+            : (prev[key] || [])
+          averaged[key] = allVals.length > 0
+            ? allVals.reduce((sum, v) => sum + v, 0) / allVals.length
+            : 0
+        })
+        // Also include any keys from this final option not yet in accumulator
+        Object.entries(option.traits).forEach(([key, val]) => {
+          if (!(key in averaged)) averaged[key] = val
+        })
+        updateTraits(averaged)
+        return averaged
+      })
+
       if (sessionId) {
         await updateSessionProgress(sessionId, 'decision_lab')
       }

@@ -21,40 +21,45 @@ export default function CreativeComposition() {
     if (text.length < PROMPT.minLength) return
     setIsSubmitting(true)
 
-    try {
-      const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-      const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
+    // Write local defaults unconditionally — never block on Gemini latency
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length
+    updateTraits({
+      creativity:        Math.min(1.0, wordCount / 70),
+      aesthetic_judgment: Math.min(1.0, wordCount / 90),
+      verbal_reasoning:  Math.min(1.0, wordCount / 60),
+    })
 
-      const response = await fetch(`${API_URL}/score`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          activity_id: 'creative_composition',
-          response_text: text,
-          rubric: ['creativity', 'aesthetic_judgment', 'verbal_reasoning'],
-        }),
-      })
-
-      const scores = await response.json()
-      updateTraits(scores)
-
-      if (sessionId) {
-        await recordResponse(sessionId, 'creative_composition', {
-          raw_response: text,
-          rubric_scores: scores,
+    // Fire-and-forget Gemini scoring — refines traits in background
+    ;(async () => {
+      try {
+        const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+        const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
+        const response = await fetch(`${API_URL}/score`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            activity_id: 'creative_composition',
+            response_text: text,
+            rubric: ['creativity', 'aesthetic_judgment', 'verbal_reasoning'],
+          }),
         })
-        await updateSessionProgress(sessionId, 'creative_composition')
+        const scores = await response.json()
+        updateTraits(scores)
+        if (sessionId) {
+          await recordResponse(sessionId, 'creative_composition', {
+            raw_response: text,
+            rubric_scores: scores,
+          })
+          await updateSessionProgress(sessionId, 'creative_composition')
+        }
+      } catch (e) {
+        console.warn('CreativeComposition Gemini scoring failed silently:', e)
       }
+    })()
 
-      advanceFlow(navigate)
-    } catch (e) {
-      console.error('CreativeComposition submit error:', e)
-      const fallback = { creativity: 0.5, aesthetic_judgment: 0.5, verbal_reasoning: 0.5 }
-      updateTraits(fallback)
-      advanceFlow(navigate)
-    } finally {
-      setIsSubmitting(false)
-    }
+    // Advance immediately
+    advanceFlow(navigate)
+    setIsSubmitting(false)
   }
 
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length

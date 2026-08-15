@@ -7,7 +7,9 @@ import { useNavigate } from 'react-router-dom'
 const QUESTIONS = [
   { 
     id: 1, 
-    type: "numerical_reasoning", 
+    // PatternHunter owns: logical_reasoning, pattern_recognition only
+    // NOT numerical_reasoning (that's NumericalReasoning's key)
+    type: "logical_reasoning", 
     text: "Identify the missing element in the sequence: 2, 6, 12, 20, 30, ?", 
     options: ["40", "42", "44", "48"], 
     answer: "42",
@@ -31,7 +33,7 @@ const QUESTIONS = [
   },
   {
     id: 4,
-    type: "spatial_reasoning",
+    type: "pattern_recognition",
     text: "Which of the following logically completes this sequence? ▲ ● ▲ ● ■ ▲ ● ▲ ● ■ ■ ?",
     options: ["▲", "●", "■", "None"],
     answer: "▲",
@@ -90,7 +92,7 @@ export default function PatternHunter() {
         body: JSON.stringify({
           user_id: sessionId || 'anonymous',
           activity_id: 'pattern_hunter',
-          difficulty_level: 3, // In full app, derive from traits.age_group
+          difficulty_level: 3,
           telemetry: telemetry
         })
       })
@@ -98,8 +100,9 @@ export default function PatternHunter() {
       const data = await response.json()
       
       // Update local state based on backend response heuristic
+      // PatternHunter owns ONLY logical_reasoning and pattern_recognition
       if (data.estimated_skill_delta) {
-        const traitName = QUESTIONS[current].type
+        const traitName = QUESTIONS[current].type // already remapped: only 'logical_reasoning' or 'pattern_recognition'
         const newScore = Math.max(0, Math.min(100, (traits[traitName] || 50) + (data.estimated_skill_delta * 10)))
         updateTraits({ [traitName]: newScore })
       }
@@ -131,22 +134,24 @@ export default function PatternHunter() {
       was_correct: isCorrect
     }
 
+    // Write trait unconditionally first — never gate on API
+    // PatternHunter owns ONLY logical_reasoning and pattern_recognition.
+    // q.type is already remapped in QUESTIONS above: no numerical_reasoning or spatial_reasoning here.
+    const traitScore = Math.round(Math.max(10, Math.min(100,
+      (isCorrect ? Math.max(1.0 - (attempts * 0.3), 0.2) : 0.1) * 100
+    )))
+    updateTraits({ [q.type]: traitScore })
+
     // Fire-and-forget telemetry — do NOT await so it never blocks
     ;(async () => {
       try {
         const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
         const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
-        const res = await fetch(`${API_URL}/submit_activity`, {
+        await fetch(`${API_URL}/submit_activity`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: sessionId || 'anonymous', activity_id: 'pattern_hunter', difficulty_level: 3, telemetry })
         })
-        const data = await res.json()
-        if (data.estimated_skill_delta) {
-          const traitName = q.type === 'spatial_reasoning' ? 'spatial_reasoning' : 'logical_reasoning'
-          const newScore = Math.max(0, Math.min(100, (traits[traitName] || 50) + (data.estimated_skill_delta * 10)))
-          updateTraits({ [traitName]: newScore })
-        }
       } catch (e) { console.warn('Telemetry send failed silently:', e) }
       if (sessionId) await recordResponse(sessionId, `pattern_hunter_q${current+1}`, telemetry)
     })()

@@ -42,41 +42,46 @@ export default function NarrativeBuilder() {
     if (text.length < 50) return
     setIsSubmitting(true)
 
-    try {
-      const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-      const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
+    // Write local defaults unconditionally — never block on Gemini latency
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length
+    updateTraits({
+      verbal_reasoning: Math.min(1.0, wordCount / 80),
+      communication:    Math.min(1.0, wordCount / 65),
+      creativity:       Math.min(1.0, wordCount / 100),
+    })
 
-      const response = await fetch(`${API_URL}/score`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          activity_id: 'narrative_builder',
-          response_text: text,
-          rubric: ['verbal_reasoning', 'communication', 'creativity'],
-        }),
-      })
-
-      const scores = await response.json()
-      updateTraits(scores)
-
-      if (sessionId) {
-        await recordResponse(sessionId, 'narrative_builder', {
-          scenario_id: scenario.id,
-          raw_response: text,
-          rubric_scores: scores,
+    // Fire-and-forget Gemini scoring
+    ;(async () => {
+      try {
+        const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+        const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
+        const response = await fetch(`${API_URL}/score`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            activity_id: 'narrative_builder',
+            response_text: text,
+            rubric: ['verbal_reasoning', 'communication', 'creativity'],
+          }),
         })
-        await updateSessionProgress(sessionId, 'narrative_builder')
+        const scores = await response.json()
+        updateTraits(scores)
+        if (sessionId) {
+          await recordResponse(sessionId, 'narrative_builder', {
+            scenario_id: scenario.id,
+            raw_response: text,
+            rubric_scores: scores,
+          })
+          await updateSessionProgress(sessionId, 'narrative_builder')
+        }
+      } catch (e) {
+        console.warn('NarrativeBuilder Gemini scoring failed silently:', e)
       }
+    })()
 
-      advanceFlow(navigate)
-    } catch (e) {
-      console.error('NarrativeBuilder submit error:', e)
-      const fallback = { verbal_reasoning: 0.5, communication: 0.5, creativity: 0.5 }
-      updateTraits(fallback)
-      advanceFlow(navigate)
-    } finally {
-      setIsSubmitting(false)
-    }
+    // Advance immediately
+    advanceFlow(navigate)
+    setIsSubmitting(false)
   }
 
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length

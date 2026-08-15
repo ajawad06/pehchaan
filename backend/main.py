@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import joblib
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +8,14 @@ import json
 import os
 import firebase_admin
 from firebase_admin import credentials
+
+# Import O*NET derived taxonomy and scoring functions
+from career_taxonomy_onet import (
+    CAREER_TAXONOMY as ONET_TAXONOMY,
+    riasec_similarity,
+    ability_match as onet_ability_match,
+    recommend_careers as onet_recommend_careers,
+)
 
 try:
     firebase_cred_json = os.environ.get("FIREBASE_CREDENTIALS")
@@ -279,115 +287,15 @@ class ActivityAttempt(BaseModel):
 
 class UserProfile(BaseModel):
     user_id: str
-    interests: Dict[str, float]  # e.g. {"architecture": 0.9, "arts": 0.8}
-    abilities: Dict[str, float]  # e.g. {"logical_reasoning": 0.85, "creativity": 0.6}
+    interests: Dict[str, float]        # e.g. {"architecture": 0.9, "arts": 0.8} — onboarding tags
+    abilities: Dict[str, float]        # e.g. {"logical_reasoning": 0.85, "creativity": 0.6} — measured 0-1
     career_values: List[str]
+    riasec: Optional[Dict[str, float]] = None  # Measured RIASEC from InstinctSwipe {R,I,A,S,E,C}
 
-# Pakistan-relevant Career Taxonomy — 22 careers across all interest domains
-# Every interest in INTEREST_MODULES has at least one matching career here.
-# CS is split into 5 distinct paths to answer the AI/DS/SE/Cyber question directly.
-CAREER_TAXONOMY = {
-    # ── Technology & Computing (split into 5 paths) ──
-    "Software Engineering": {
-        "required_skills": {"logical_reasoning": 0.85, "systems_thinking": 0.8, "persistence": 0.75},
-        "related_interests": ["technology"]
-    },
-    "Computer Science / Research": {
-        "required_skills": {"logical_reasoning": 0.85, "abstract_reasoning": 0.85, "numerical_reasoning": 0.7},
-        "related_interests": ["technology", "science"]
-    },
-    "Data Science": {
-        "required_skills": {"numerical_reasoning": 0.9, "pattern_recognition": 0.85, "analytical_thinking": 0.85},
-        "related_interests": ["technology", "science"]
-    },
-    "Artificial Intelligence / ML": {
-        "required_skills": {"numerical_reasoning": 0.85, "pattern_recognition": 0.9, "analytical_thinking": 0.85},
-        "related_interests": ["technology", "science"]
-    },
-    "Cybersecurity": {
-        "required_skills": {"attention_to_detail": 0.9, "adversarial_thinking": 0.85, "persistence": 0.8},
-        "related_interests": ["technology"]
-    },
-    # ── Medicine & Health ──
-    "Medicine (MBBS)": {
-        "required_skills": {"memory": 0.9, "empathy": 0.8, "persistence": 0.9, "logical_reasoning": 0.7},
-        "related_interests": ["medicine", "science"]
-    },
-    "Pharmacy": {
-        "required_skills": {"memory": 0.85, "attention_to_detail": 0.8, "numerical_reasoning": 0.6},
-        "related_interests": ["medicine", "science"]
-    },
-    "Nursing / Allied Health": {
-        "required_skills": {"empathy": 0.9, "persistence": 0.75, "attention_to_detail": 0.7},
-        "related_interests": ["medicine"]
-    },
-    # ── Engineering (non-software) ──
-    "Civil Engineering": {
-        "required_skills": {"spatial_reasoning": 0.85, "numerical_reasoning": 0.8, "planning": 0.75},
-        "related_interests": ["engineering", "architecture"]
-    },
-    "Electrical / Mechanical Engineering": {
-        "required_skills": {"logical_reasoning": 0.8, "numerical_reasoning": 0.85, "spatial_reasoning": 0.7},
-        "related_interests": ["engineering"]
-    },
-    # ── Law & Public Policy ──
-    "Law (LLB)": {
-        "required_skills": {"verbal_reasoning": 0.9, "logical_reasoning": 0.85, "communication": 0.85, "persistence": 0.7},
-        "related_interests": ["law"]
-    },
-    "Civil Service (CSS)": {
-        "required_skills": {"verbal_reasoning": 0.8, "planning": 0.75, "leadership": 0.7, "communication": 0.7},
-        "related_interests": ["law", "business"]
-    },
-    # ── Business & Finance ──
-    "Business Administration": {
-        "required_skills": {"leadership": 0.8, "communication": 0.75, "risk_tolerance": 0.7},
-        "related_interests": ["business"]
-    },
-    "Chartered Accountancy / Finance": {
-        "required_skills": {"numerical_reasoning": 0.9, "attention_to_detail": 0.85, "persistence": 0.8},
-        "related_interests": ["business"]
-    },
-    "Entrepreneurship": {
-        "required_skills": {"risk_tolerance": 0.9, "creativity": 0.7, "leadership": 0.75},
-        "related_interests": ["business"]
-    },
-    # ── Architecture, Design, Arts & Media ──
-    "Architecture": {
-        "required_skills": {"spatial_reasoning": 0.9, "creativity": 0.8, "logical_reasoning": 0.7},
-        "related_interests": ["architecture", "arts"]
-    },
-    "UX/UI Design": {
-        "required_skills": {"creativity": 0.9, "empathy": 0.8, "pattern_recognition": 0.7},
-        "related_interests": ["arts", "technology"]
-    },
-    "Visual & Fine Arts": {
-        "required_skills": {"creativity": 0.9, "aesthetic_judgment": 0.85},
-        "related_interests": ["arts"]
-    },
-    "Creative Writing / Journalism / Media": {
-        "required_skills": {"verbal_reasoning": 0.85, "creativity": 0.8, "communication": 0.8},
-        "related_interests": ["arts", "languages"]
-    },
-    # ── Education & Social Sciences ──
-    "Teaching / Education": {
-        "required_skills": {"communication": 0.85, "empathy": 0.75, "persistence": 0.7},
-        "related_interests": ["psychology", "languages"]
-    },
-    "Psychology": {
-        "required_skills": {"empathy": 0.85, "analytical_thinking": 0.75, "communication": 0.7},
-        "related_interests": ["psychology"]
-    },
-    # ── Science (standalone) ──
-    "Scientific Research": {
-        "required_skills": {"numerical_reasoning": 0.85, "analytical_thinking": 0.8, "persistence": 0.75},
-        "related_interests": ["science"]
-    },
-    "Languages / Linguistics": {
-        "required_skills": {"verbal_reasoning": 0.9, "analytical_thinking": 0.7, "communication": 0.8},
-        "related_interests": ["languages"]
-    },
-}
+# Old hand-typed CAREER_TAXONOMY removed.
+# The O*NET-sourced taxonomy (21 careers, real RIASEC + ability profiles)
+# is imported at the top of this file as ONET_TAXONOMY from career_taxonomy_onet.py.
+# That is the single source of truth. Do not add a second dict here.
 
 @app.post("/submit_activity")
 def submit_activity(attempt: ActivityAttempt):
@@ -411,56 +319,50 @@ def submit_activity(attempt: ActivityAttempt):
     }
 
 @app.post("/recommend_careers")
-def recommend_careers(profile: UserProfile):
+def get_career_recommendations(profile: UserProfile):
     """
-    Cold-Start Career Recommendation Engine.
-    Combines Interest and Ability to recommend careers without ML.
-    Compatibility = (Interest Match * 0.4) + (Ability Match * 0.6)
+    Career Recommendation Engine — O*NET Real Data (career_taxonomy_onet.py).
+
+    Always uses onet_recommend_careers():
+      ─ When profile.riasec is present (InstinctSwipe completed): full cosine
+        similarity against each career's real O*NET RIASEC profile + ability match
+        over only the skills the user actually measured (no 0.5 default fill-in).
+      ─ When profile.riasec is absent: passes a zero RIASEC vector so the ability
+        match still runs correctly — results will be ability-only, which is better
+        than the old tag-matching + 0.5 default fallback.
+
+    Scoring (from onet_recommend_careers):
+      interest_score < 0.15  →  compatibility = ability_score × 0.15  (suppressed)
+      otherwise              →  compatibility = interest × 0.4 + ability × 0.6
     """
+    # Use measured RIASEC if available; zero vector otherwise
+    user_riasec = profile.riasec or {"R": 0, "I": 0, "A": 0, "S": 0, "E": 0, "C": 0}
+
+    raw = onet_recommend_careers(
+        user_riasec=user_riasec,
+        user_abilities=profile.abilities,
+        taxonomy=ONET_TAXONOMY,
+    )
+
     results = []
-    
-    for career, data in CAREER_TAXONOMY.items():
-        # 1. Calculate Interest Match
-        interest_match = 0.0
-        for interest in profile.interests.keys():
-            if interest in data["related_interests"]:
-                interest_match += profile.interests[interest]
-        # Normalize interest match (max 1.0)
-        interest_match = min(1.0, interest_match)
-        
-        # 2. Calculate Ability Match
-        ability_match = 0.0
-        required_skills = data["required_skills"]
-        if required_skills:
-            total_weight = sum(required_skills.values())
-            earned_weight = 0.0
-            for skill, weight in required_skills.items():
-                user_skill_level = profile.abilities.get(skill, 0.5) # Default 0.5 if unknown
-                earned_weight += (user_skill_level * weight)
-            ability_match = earned_weight / total_weight if total_weight > 0 else 0.0
-            
-        # 3. Final Compatibility Score
-        # Interest suppression gate: low interest match heavily suppresses the career
-        # instead of just underweighting it — this prevents "arts interest → Medicine" errors
-        if interest_match < 0.15:
-            compatibility = ability_match * 0.15  # heavily suppressed
-        else:
-            compatibility = (interest_match * 0.4) + (ability_match * 0.6)
-        
-        # Calculate a pseudo-confidence based on how many required skills the user actually has in their profile
-        known_skills_count = sum(1 for s in required_skills.keys() if s in profile.abilities)
-        confidence = known_skills_count / len(required_skills) if required_skills else 0.5
-        
+    for entry in raw:
+        career_data = ONET_TAXONOMY.get(entry["career"], {})
+        required = career_data.get("required_skills", {})
+        # Confidence = fraction of required skills we actually measured
+        known = sum(1 for s in required if s in profile.abilities)
+        conf = (known / len(required)) if required else 0.0
         results.append({
-            "career": career,
-            "compatibility": round(compatibility * 100, 1),
-            "confidence": round(confidence * 100, 1)
+            "career":         entry["career"],
+            "compatibility":  entry["compatibility"],
+            "confidence":     round(conf * 100, 1),
+            "interest_match": entry.get("interest_match", 0.0),
+            "ability_match":  entry.get("ability_match", 0.0),
+            "engine":         "onet_riasec" if (profile.riasec and any(v > 0 for v in profile.riasec.values())) else "onet_ability_only",
         })
-        
-    # Sort by compatibility descending
+
+    # Already sorted by onet_recommend_careers, but re-sort defensively
     results.sort(key=lambda x: x["compatibility"], reverse=True)
-    
-    return {"recommendations": results}  # full ranked list — frontend slices as needed
+    return {"recommendations": results}
 
 @app.post("/next_activity")
 def next_activity(profile: UserProfile):

@@ -20,6 +20,7 @@ import InstinctSwipe from './components/InstinctSwipe'
 import CreativeComposition from './components/CreativeComposition'
 import NarrativeBuilder from './components/NarrativeBuilder'
 import EmpathyScenario from './components/EmpathyScenario'
+import Tier2Disambiguation from './components/Tier2Disambiguation'
 import { useOfflineSync } from './services/offlineQueue'
 
 import './index.css'
@@ -55,6 +56,7 @@ function App() {
           <Route path="/narrative-builder" element={<NarrativeBuilder />} />
           <Route path="/empathy-scenario" element={<EmpathyScenario />} />
           <Route path="/career-simulation" element={<CareerSimulation />} />
+          <Route path="/tier2-disambiguation" element={<Tier2Disambiguation />} />
           <Route path="/results" element={<ResultsScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

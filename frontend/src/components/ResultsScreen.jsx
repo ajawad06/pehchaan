@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useSession } from '../store/SessionContext'
 import { saveRecommendations } from '../services/db'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { detectTier2Cluster } from './Tier2Disambiguation'
 
 // All skills used anywhere in the taxonomy — used to build the abilities object
 // from traits without a hardcoded shortlist.
@@ -54,12 +56,17 @@ const CAREER_DISTINGUISHERS = {
 
 export default function ResultsScreen() {
   const { traits, sessionId } = useSession()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isRefined = location.state?.refined === true
+
   const [recommendations, setRecommendations] = useState(null)
   const [comprehensiveData, setComprehensiveData] = useState(null)
-  const [allResults, setAllResults] = useState([])  // full ranked list for domain comparison
+  const [allResults, setAllResults] = useState([])
   const [modelVersion, setModelVersion] = useState('taxonomy_v2')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [suggestedCluster, setSuggestedCluster] = useState(null)
 
   useEffect(() => {
     async function fetchResults() {
@@ -93,11 +100,24 @@ export default function ResultsScreen() {
           }
         })
 
+        // Include measured RIASEC vector \u2014 triggers O*NET cosine-similarity path
+        // in the backend instead of legacy tag-matching
+        const riasecVector = {
+          R: traits.R || 0,
+          I: traits.I || 0,
+          A: traits.A || 0,
+          S: traits.S || 0,
+          E: traits.E || 0,
+          C: traits.C || 0,
+        }
+        const hasRiasec = Object.values(riasecVector).some(v => v > 0)
+
         const userProfile = {
           user_id: sessionId || 'anonymous',
           interests: traits.interests || {},
           abilities,
           career_values: traits.career_values || [],
+          riasec: hasRiasec ? riasecVector : undefined,
         }
 
         // ─── Run BOTH engines in parallel ─────────────────────────────────────
@@ -140,8 +160,13 @@ export default function ResultsScreen() {
           }))
           setAllResults(fullList)
 
+          // ─── Tier 2: detect if top 3 are all the same domain ──────────────
+          if (!isRefined && !traits.tier2_completed) {
+            const cluster = detectTier2Cluster(fullList.slice(0, 5))
+            if (cluster) setSuggestedCluster(cluster)
+          }
+
           if (hasInterests || rfResult.status === 'rejected') {
-            // Taxonomy is primary
             ranked_clusters = fullList.slice(0, 5)
             model_version = 'taxonomy_v2'
           }
@@ -253,9 +278,48 @@ export default function ResultsScreen() {
         </button>
       </div>
 
-      <h1 className="text-5xl font-medium tracking-tight mb-2 text-center mt-8">Your Pehchaan</h1>
+      <h1 className="text-5xl font-medium tracking-tight mb-2 text-center mt-8">
+        Your Pehchaan
+        {isRefined && (
+          <span className="ml-3 text-base font-semibold text-green-primary align-middle bg-green-primary/10 px-3 py-1 rounded-full">
+            ✓ Refined
+          </span>
+        )}
+      </h1>
       <p className="text-text-muted text-lg mb-12 text-center max-w-xl">A multidimensional career profile built from your cognitive performance, personality, and behavioral signals.</p>
       
+      {/* ─── Tier 2 Refinement CTA ──────────────────────────────────────── */}
+      {!loading && !error && suggestedCluster && !isRefined && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-2xl mb-8 bg-green-primary/8 border border-green-primary/25 rounded-[24px] p-6 flex items-start gap-5"
+        >
+          <div className="text-3xl mt-0.5">🎯</div>
+          <div className="flex-1">
+            <p className="font-semibold text-green-dark mb-1">
+              Your top matches are all in the same field — can we narrow it down?
+            </p>
+            <p className="text-sm text-text-muted mb-4">
+              3 quick questions will separate{' '}
+              <span className="font-medium text-green-dark capitalize">{suggestedCluster.replace('_', ' ')}</span>{' '}
+              careers by the specific traits that actually distinguish them. Takes under 2 minutes.
+            </p>
+            <button
+              onClick={() => navigate(`/tier2-disambiguation?cluster=${suggestedCluster}`)}
+              className="px-6 py-2.5 bg-green-primary text-ivory font-medium rounded-full hover:bg-green-dark transition-colors text-sm shadow-md"
+            >
+              Refine my results →
+            </button>
+          </div>
+          <button
+            onClick={() => setSuggestedCluster(null)}
+            className="text-text-muted hover:text-green-dark text-lg leading-none mt-0.5"
+            aria-label="Dismiss"
+          >✕</button>
+        </motion.div>
+      )}
+
       {loading && (
         <div className="flex flex-col items-center justify-center space-y-6 my-20">
           <div className="relative">
