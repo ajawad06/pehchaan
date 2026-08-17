@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { recordResponse } from '../services/db'
+import PixelIcon from './PixelIcon'
 
 // ─── Cluster definitions ──────────────────────────────────────────────────────
 // Each cluster: 3 questions × 4 choices, each choice writes specific trait
@@ -13,7 +14,7 @@ const CLUSTERS = {
   technology: {
     title: 'Tech Pathway Finder',
     subtitle: 'Your profile fits all 5 tech fields. These 3 questions find where your instincts actually land.',
-    emoji: '⚡',
+    icon: 'spark',
     accentClass: 'from-blue-600 to-indigo-700',
     differentiators: {
       'Software Engineering':        'systems_thinking',
@@ -56,7 +57,7 @@ const CLUSTERS = {
   medicine: {
     title: 'Medical Path Finder',
     subtitle: 'You are drawn to health. These 3 questions identify whether you are a clinician, pharmacist, or care specialist.',
-    emoji: '🩺',
+    icon: 'stethoscope',
     accentClass: 'from-emerald-600 to-teal-700',
     differentiators: {
       'Medicine (MBBS)':       'logical_reasoning',
@@ -97,7 +98,7 @@ const CLUSTERS = {
   business: {
     title: 'Business Track Finder',
     subtitle: 'Your profile fits the business world — but that world splits sharply. Let\'s find your lane.',
-    emoji: '📈',
+    icon: 'chart',
     accentClass: 'from-amber-600 to-orange-700',
     differentiators: {
       'Business Administration':            'leadership',
@@ -139,7 +140,7 @@ const CLUSTERS = {
   arts: {
     title: 'Creative Field Finder',
     subtitle: 'Your Artistic profile is strong — but the creative world branches sharply. Let\'s find your medium.',
-    emoji: '🎭',
+    icon: 'theater',
     accentClass: 'from-purple-600 to-pink-700',
     differentiators: {
       'Visual & Fine Arts':                      'aesthetic_judgment',
@@ -181,7 +182,7 @@ const CLUSTERS = {
   law: {
     title: 'Law & Service Track Finder',
     subtitle: 'Verbal reasoning and social drive — but two very different career paths. Let\'s narrow it down.',
-    emoji: '⚖️',
+    icon: 'scales',
     accentClass: 'from-slate-700 to-gray-900',
     differentiators: {
       'Law (LLB)':           'logical_reasoning',
@@ -221,7 +222,7 @@ const CLUSTERS = {
   engineering: {
     title: 'Engineering Track Finder',
     subtitle: 'Your Realistic + Investigative profile fits both engineering paths. These questions separate them.',
-    emoji: '🔩',
+    icon: 'gear',
     accentClass: 'from-zinc-700 to-slate-800',
     differentiators: {
       'Civil Engineering':                    'spatial_reasoning',
@@ -349,10 +350,10 @@ export default function Tier2Disambiguation() {
   const q = cluster.questions[current]
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative overflow-hidden">
 
       {/* Back */}
-      <div className="absolute top-6 left-6">
+      <div className="absolute top-6 left-6 z-20">
         <button
           onClick={() => navigate('/results')}
           className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2 text-sm"
@@ -365,7 +366,7 @@ export default function Tier2Disambiguation() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">{cluster.emoji}</div>
+          <div className="text-5xl mb-3"><PixelIcon name={cluster.icon} size={54} /></div>
           <h1 className="text-3xl font-medium tracking-tight mb-2">{cluster.title}</h1>
           <p className="text-text-muted text-sm max-w-md mx-auto">{cluster.subtitle}</p>
         </div>

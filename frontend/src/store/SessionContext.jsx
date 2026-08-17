@@ -13,13 +13,13 @@ const INTEREST_MODULES = {
   arts:         { activities: ['/creative-composition', '/narrative-builder'],               skills: ['creativity', 'aesthetic_judgment', 'verbal_reasoning'] },
   languages:    { activities: ['/narrative-builder', '/creative-composition'],               skills: ['verbal_reasoning', 'communication', 'creativity'] },
   architecture: { activities: ['/visual-spatial', '/creative-composition'],                  skills: ['spatial_reasoning', 'creativity', 'aesthetic_judgment'] },
-  technology:   { activities: ['/data-detective', '/numerical-reasoning'],                   skills: ['logical_reasoning', 'numerical_reasoning', 'analytical_thinking'] },
-  science:      { activities: ['/data-detective', '/numerical-reasoning'],                   skills: ['numerical_reasoning', 'analytical_thinking', 'pattern_recognition'] },
+  technology:   { activities: ['/pattern-hunter', '/data-detective', '/numerical-reasoning'],    skills: ['logical_reasoning', 'numerical_reasoning', 'analytical_thinking', 'pattern_recognition'] },
+  science:      { activities: ['/pattern-hunter', '/data-detective', '/numerical-reasoning'],    skills: ['numerical_reasoning', 'analytical_thinking', 'pattern_recognition'] },
   medicine:     { activities: ['/empathy-scenario', '/attention-game', '/memory-game'],      skills: ['empathy', 'memory', 'persistence', 'attention_to_detail'] },
   business:     { activities: ['/creative-problem-solver', '/decision-lab'],                 skills: ['risk_tolerance', 'communication', 'leadership'] },
   psychology:   { activities: ['/creative-problem-solver', '/empathy-scenario'],             skills: ['empathy', 'communication', 'analytical_thinking'] },
   law:          { activities: ['/narrative-builder', '/creative-problem-solver'],            skills: ['verbal_reasoning', 'logical_reasoning', 'communication', 'persistence'] },
-  engineering:  { activities: ['/visual-spatial', '/numerical-reasoning', '/data-detective'], skills: ['spatial_reasoning', 'numerical_reasoning', 'systems_thinking'] },
+  engineering:  { activities: ['/pattern-hunter', '/visual-spatial', '/numerical-reasoning', '/data-detective'], skills: ['spatial_reasoning', 'numerical_reasoning', 'systems_thinking', 'pattern_recognition'] },
 }
 
 export const SessionProvider = ({ children }) => {
@@ -128,14 +128,15 @@ export const SessionProvider = ({ children }) => {
   }
 
   const generateFlow = (interests) => {
-    // Tier 0: Universal core — everyone takes these
+    // Tier 0: Universal core — DOMAIN-NEUTRAL activities only
+    // Pattern Hunter, Numerical Reasoning, Data Detective are NOT here.
+    // They are math/logic-coded and only appear for tech/science/engineering
+    // interests via INTEREST_MODULES above.
     let queue = [
-      '/personality',       // Big Five
+      '/personality',       // Big Five — domain neutral
       '/instinct-swipe',    // RIASEC — feeds the RF model
-      '/pattern-hunter',    // logical_reasoning / pattern_recognition
       '/decision-lab',      // risk_tolerance, decision_making, planning
       '/memory-game',       // working_memory / memory
-      '/visual-spatial',    // spatial_reasoning
       '/attention-game',    // processing_speed / persistence / attention_to_detail
       '/learning-agility',  // learning_agility
       '/creative-uses',     // creativity

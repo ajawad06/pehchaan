@@ -176,8 +176,8 @@ export default function PatternHunter() {
   const q = QUESTIONS[current]
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
-      <div className="absolute top-6 left-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
+      <div className="absolute top-6 left-6 z-20">
         <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
           ← Back to Home
         </button>
@@ -219,7 +219,7 @@ export default function PatternHunter() {
               showHint ? 'border-border-glass text-text-muted' : 'border-green-secondary text-green-secondary hover:bg-green-secondary hover:text-ivory'
             }`}
           >
-            {showHint ? "Hint Used" : "💡 Need a hint?"}
+            {showHint ? "Hint Used" : "Need a hint?"}
           </button>
           
           <AnimatePresence>

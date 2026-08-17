@@ -8,18 +8,18 @@ const SCENARIOS = [
     id: 1, 
     text: "Your team is falling behind on a project. What do you do?", 
     options: [
-      { text: "Take charge and assign new roles", traits: { leadership: 0.8, decision_making: 0.6 } },
-      { text: "Call a meeting to brainstorm together", traits: { leadership: 0.4, decision_making: 0.4 } },
-      { text: "Work late to finish your part first", traits: { leadership: 0.1, decision_making: 0.2 } }
+      { text: "Take charge and assign new roles", traits: { leadership: 80, decision_making: 60 } },
+      { text: "Call a meeting to brainstorm together", traits: { leadership: 40, decision_making: 40 } },
+      { text: "Work late to finish your part first", traits: { leadership: 10, decision_making: 20 } }
     ] 
   },
   { 
     id: 2, 
     text: "You have a chance to try a completely new, unproven method that could save time. Do you use it?", 
     options: [
-      { text: "Yes, the reward is worth the risk", traits: { risk_tolerance: 0.9, planning: 0.2 } },
-      { text: "I'll test it on a small piece first", traits: { risk_tolerance: 0.5, planning: 0.8 } },
-      { text: "No, stick to the proven method", traits: { risk_tolerance: 0.1, planning: 0.5 } }
+      { text: "Yes, the reward is worth the risk", traits: { risk_tolerance: 90, planning: 20 } },
+      { text: "I'll test it on a small piece first", traits: { risk_tolerance: 50, planning: 80 } },
+      { text: "No, stick to the proven method", traits: { risk_tolerance: 10, planning: 50 } }
     ] 
   }
 ]
@@ -85,8 +85,8 @@ export default function DecisionLab() {
   const s = SCENARIOS[current]
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
-      <div className="absolute top-6 left-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
+      <div className="absolute top-6 left-6 z-20">
         <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
           ← Back to Home
         </button>

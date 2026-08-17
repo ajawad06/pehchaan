@@ -1,18 +1,19 @@
 import { useState } from 'react'
 import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress } from '../services/db'
+import PixelIcon from './PixelIcon'
 import { useNavigate } from 'react-router-dom'
 
 const PROMPT = {
   title: 'Creative Composition',
-  emoji: '🎨',
+  icon: 'palette',
   instruction: 'Look at this scene in your mind: a deserted coastal town at dusk, the last fishing boats returning, an old lighthouse flickering. In 4–6 sentences, describe what you see, hear, and feel — and what story this place is silently telling.',
   placeholder: 'Begin your description here...',
   minLength: 60,
 }
 
 export default function CreativeComposition() {
-  const { sessionId, updateTraits, advanceFlow } = useSession()
+  const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const [text, setText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
@@ -22,11 +23,12 @@ export default function CreativeComposition() {
     setIsSubmitting(true)
 
     // Write local defaults unconditionally — never block on Gemini latency
+    // ALL scores on 0-100 scale to match Cognitive Profile display
     const wordCount = text.trim().split(/\s+/).filter(Boolean).length
     updateTraits({
-      creativity:        Math.min(1.0, wordCount / 70),
-      aesthetic_judgment: Math.min(1.0, wordCount / 90),
-      verbal_reasoning:  Math.min(1.0, wordCount / 60),
+      creativity:        Math.max(traits.creativity || 0, Math.round(Math.min(100, (wordCount / 70) * 100))),
+      aesthetic_judgment: Math.max(traits.aesthetic_judgment || 0, Math.round(Math.min(100, (wordCount / 90) * 100))),
+      verbal_reasoning:  Math.max(traits.verbal_reasoning || 0, Math.round(Math.min(100, (wordCount / 60) * 100))),
     })
 
     // Fire-and-forget Gemini scoring — refines traits in background
@@ -44,7 +46,13 @@ export default function CreativeComposition() {
           }),
         })
         const scores = await response.json()
-        updateTraits(scores)
+        // Gemini returns 0-1 — convert to 0-100 and Math.max to preserve higher
+        const scaled = {}
+        Object.entries(scores).forEach(([key, val]) => {
+          const asPercent = Math.round((typeof val === 'number' ? val : 0.5) * 100)
+          scaled[key] = Math.max(traits[key] || 0, asPercent)
+        })
+        updateTraits(scaled)
         if (sessionId) {
           await recordResponse(sessionId, 'creative_composition', {
             raw_response: text,
@@ -65,8 +73,8 @@ export default function CreativeComposition() {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
-      <div className="absolute top-6 left-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
+      <div className="absolute top-6 left-6 z-20">
         <button
           onClick={() => navigate('/')}
           className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2"
@@ -78,7 +86,7 @@ export default function CreativeComposition() {
       <div className="flex flex-col items-center p-10 bg-soft-white rounded-[32px] shadow-2xl border border-border-glass max-w-2xl w-full mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
-          <span className="text-4xl">{PROMPT.emoji}</span>
+          <PixelIcon name={PROMPT.icon} size={42} />
           <h2 className="text-3xl font-medium tracking-tight">{PROMPT.title}</h2>
         </div>
         <p className="text-xs uppercase tracking-widest text-text-muted mb-8 font-semibold">

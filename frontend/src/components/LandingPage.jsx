@@ -1,265 +1,160 @@
-import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import Navbar from './Navbar'
+import PixelIcon from './PixelIcon'
+
+const games = [
+  { title: 'Memory Match', desc: 'Test how sharply you recall details.', icon: 'book', path: '/memory-game' },
+  { title: 'Pattern Hunter', desc: 'Spot the logic hiding in a sequence.', icon: 'chart', path: '/pattern-hunter' },
+  { title: 'Decision Lab', desc: 'Trade-offs under pressure, gamified.', icon: 'scales', path: '/decision-lab' },
+  { title: 'Career Simulation', desc: 'Live a day in a role before you pick it.', icon: 'briefcase', path: '/career-simulation' },
+  { title: 'Instinct Swipe', desc: 'Quick gut calls, no overthinking.', icon: 'wrench', path: '/instinct-swipe' },
+  { title: 'Data Detective', desc: 'Follow the clues hidden in the numbers.', icon: 'chart', path: '/data-detective' },
+]
+
+const compareQuiz = [
+  'Rate yourself on abstract traits',
+  'Pick A, B, C or D repeatedly',
+  'Answer from memory, not instinct',
+]
+
+const comparePehchaan = [
+  'Match cards to test working memory',
+  'Swipe for gut-first decisions',
+  'Play a real career scenario for a day',
+]
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-green-deepest text-ivory font-sans selection:bg-sage selection:text-green-deepest">
+    <div className="pixel-landing">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center pt-32 px-6 overflow-hidden">
-        {/* Subtle background paths/neural networks */}
-        <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-          <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <motion.path 
-              d="M0,50 Q25,30 50,50 T100,50" 
-              fill="none" 
-              stroke="var(--sage)" 
-              strokeWidth="0.1"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 3, ease: "easeInOut" }}
-            />
-            <motion.path 
-              d="M0,80 Q40,90 60,60 T100,20" 
-              fill="none" 
-              stroke="var(--sage)" 
-              strokeWidth="0.05"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 4, ease: "easeInOut", delay: 0.5 }}
-            />
-          </svg>
-        </div>
-
-        <div className="z-10 max-w-7xl w-full grid md:grid-cols-2 gap-12 items-center">
+      <section className="pixel-hero">
+        <div className="pixel-hero-content">
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-medium tracking-tight leading-[1.1] mb-6">
-              You don't need <br className="hidden lg:block"/> another career test.
-            </h1>
-            <h2 className="text-4xl md:text-5xl font-medium text-sage mb-8 tracking-tight">
-              You need to <br className="hidden lg:block"/> understand yourself.
-            </h2>
-            
-            <p className="text-lg md:text-xl text-text-muted mb-10 font-light leading-relaxed max-w-lg">
-              Pehchaan helps you discover the fields, strengths and career paths that fit the way you think, create and solve problems.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-              <Link 
-                to="/start" 
-                className="group relative bg-ivory text-green-dark px-8 py-4 rounded-full text-lg font-semibold hover:bg-soft-white transition-all hover:scale-[1.02] overflow-hidden shadow-lg"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  Discover My Path
-                  <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </span>
-              </Link>
-              <a href="#how-it-works" className="text-text-muted hover:text-ivory transition-colors text-lg font-medium">
-                How It Works
-              </a>
-            </div>
-            
-            <p className="mt-8 text-sm text-sage/70 font-light tracking-wide uppercase">No boring career tests.</p>
-          </motion.div>
-
-          {/* 3D Student Animation */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative hidden md:block"
+            transition={{ duration: .55 }}
           >
-            <motion.img 
-              animate={{ y: [-15, 15, -15] }}
-              transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-              src="/student-3d.png" 
-              alt="Student exploring career paths"
-              className="w-full max-w-lg mx-auto drop-shadow-2xl object-contain"
-            />
+            <div className="pixel-label" style={{ color: '#E8C95A' }}><PixelIcon name="spark" size={14} /> Not a quiz. A playground.</div>
+            <div className="pixel-kicker" style={{ marginTop: 18 }}>Career discovery / playable</div>
+            <h1 className="pixel-title">
+              Find your path by <span className="accent">playing,</span> not filling bubbles.
+            </h1>
+            <p className="pixel-lede">
+              Pehchaan replaces long career questionnaires with short interactive games that notice how you remember, solve, decide, create and adapt.
+            </p>
+            <div className="pixel-hero-actions">
+              <Link to="/start" className="pixel-button light">Play the Games</Link>
+              <a href="#how-it-works" className="pixel-button ghost">See how it works</a>
+            </div>
+            <div className="pixel-proof">Zero multiple choice. Zero score-bashing. Just signals.</div>
           </motion.div>
-        </div>
-      </section>
 
-      {/* Problem Section (Ivory) */}
-      <section className="bg-ivory text-green-dark py-32 px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            className="text-4xl md:text-6xl font-medium tracking-tight mb-16 leading-tight"
-          >
-            Most students choose a career before they know themselves.
-          </motion.h2>
-          
-          <div className="grid md:grid-cols-2 gap-12 text-left">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="space-y-4"
-            >
-              <p className="text-xl md:text-2xl font-light text-green-secondary leading-relaxed">
-                Marks tell you what you studied.<br/>
-                <span className="font-medium text-green-dark">They don't always tell you what you're good at.</span>
-              </p>
-            </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="space-y-4"
-            >
-              <p className="text-xl md:text-2xl font-light text-green-secondary leading-relaxed">
-                Interests tell you what attracts you.<br/>
-                <span className="font-medium text-green-dark">They don't always tell you where you'll thrive.</span>
-              </p>
-            </motion.div>
-          </div>
-          
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-24 pt-12 border-t border-green-primary/10"
+            initial={{ opacity: 0, scale: .96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: .55, delay: .08 }}
+            className="pixel-hero-card"
+            aria-label="Pehchaan pixel explorer scene"
           >
-            <p className="text-3xl font-medium text-green-primary">Pehchaan looks at both.</p>
+            <span className="pixel-float one">+1 badge earned!</span>
+            <span className="pixel-float two">Explore →</span>
+            <span className="pixel-float three">▣ traits</span>
+            <div className="pixel-spark" style={{ position:'absolute', left:22, top:24 }}><PixelIcon name="spark" size={18} /></div>
+            <div className="pixel-spark" style={{ position:'absolute', right:34, top:38 }}><PixelIcon name="spark" size={18} /></div>
+            <div className="pixel-explorer" aria-hidden="true">
+              <span className="hair" />
+              <span className="head" />
+              <span className="bag" />
+              <span className="body" />
+              <span className="tablet" />
+              <span className="leg left" />
+              <span className="leg right" />
+              <span className="boot left" />
+              <span className="boot right" />
+            </div>
           </motion.div>
         </div>
+        <div className="forest-floor" aria-hidden="true" />
       </section>
 
-      {/* How it Works */}
-      <section id="how-it-works" className="bg-green-primary py-32 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-20">
-            <h2 className="text-sm font-bold tracking-widest text-sage uppercase mb-4">The Methodology</h2>
-            <h3 className="text-4xl md:text-5xl font-medium tracking-tight">How Pehchaan Works</h3>
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-green-dark/40 border border-border-glass p-10 rounded-[28px] hover:border-sage/30 transition-colors">
-              <div className="text-sage text-sm font-mono mb-6">01</div>
-              <h4 className="text-2xl font-medium mb-4">Tell Us What Interests You</h4>
-              <p className="text-text-muted font-light leading-relaxed">Choose broad areas you are curious about. This is a preference signal, not the final recommendation.</p>
-            </div>
-            
-            <div className="bg-green-dark/40 border border-border-glass p-10 rounded-[28px] hover:border-sage/30 transition-colors">
-              <div className="text-sage text-sm font-mono mb-6">02</div>
-              <h4 className="text-2xl font-medium mb-4">Play. Don't Just Answer.</h4>
-              <p className="text-text-muted font-light leading-relaxed">Interact with logic puzzles, spatial reasoning tasks, and creative challenges instead of boring MCQs.</p>
-            </div>
-            
-            <div className="bg-green-dark/40 border border-border-glass p-10 rounded-[28px] hover:border-sage/30 transition-colors">
-              <div className="text-sage text-sm font-mono mb-6">03</div>
-              <h4 className="text-2xl font-medium mb-4">Discover Your Direction</h4>
-              <p className="text-text-muted font-light leading-relaxed">See potential career fits based on your observed cognitive patterns and true problem-solving style.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Insights Section */}
-      <section id="insights" className="bg-ivory text-green-dark py-32 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-20">
-            <h2 className="text-sm font-bold tracking-widest text-green-secondary uppercase mb-4">The Science</h2>
-            <h3 className="text-4xl md:text-5xl font-medium tracking-tight">The Pehchaan Engine</h3>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              <p className="text-xl font-light leading-relaxed">
-                We don't just ask you what you want to be. We measure how you think. By analyzing your telemetry during interactive simulations, we build a multi-dimensional cognitive profile.
-              </p>
-              <ul className="space-y-4">
-                <li className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-green-primary/10 flex items-center justify-center text-xl">🎯</div>
-                  <span className="font-medium text-lg">Behavioral Telemetry</span>
-                </li>
-                <li className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-green-primary/10 flex items-center justify-center text-xl">🧠</div>
-                  <span className="font-medium text-lg">Cognitive Pattern Analysis</span>
-                </li>
-                <li className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-green-primary/10 flex items-center justify-center text-xl">🤖</div>
-                  <span className="font-medium text-lg">ML-Powered Career Clustering</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="bg-green-primary text-ivory p-10 rounded-[32px] shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-sage/10 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
-              <h4 className="text-2xl font-medium mb-8">Data-Driven Discovery</h4>
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between text-sm mb-2 text-sage">
-                    <span>Spatial Reasoning</span>
-                    <span>High Affinity</span>
-                  </div>
-                  <div className="h-2 w-full bg-green-dark rounded-full overflow-hidden">
-                    <div className="h-full bg-ivory w-[85%] rounded-full"></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2 text-sage">
-                    <span>Creative Problem Solving</span>
-                    <span>Strong</span>
-                  </div>
-                  <div className="h-2 w-full bg-green-dark rounded-full overflow-hidden">
-                    <div className="h-full bg-ivory w-[72%] rounded-full"></div>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-sm mb-2 text-sage">
-                    <span>Numerical Logic</span>
-                    <span>Developing</span>
-                  </div>
-                  <div className="h-2 w-full bg-green-dark rounded-full overflow-hidden">
-                    <div className="h-full bg-ivory w-[45%] rounded-full"></div>
-                  </div>
-                </div>
+      <section id="how-it-works" className="pixel-section dark">
+        <div className="pixel-container">
+          <div className="pixel-section-kicker" style={{color:'#E8C95A'}}>01 / how it works</div>
+          <h2 className="pixel-section-title">Quizzes ask. Games reveal.</h2>
+          <p style={{maxWidth:720, color:'#B7C8BE', lineHeight:1.7, marginBottom:26}}>
+            A checkbox tells us what you like to believe about yourself. A game shows what you actually do when the choice is live.
+          </p>
+
+          <div className="pixel-compare">
+            <div className="pixel-compare-panel light">
+              <div className="pixel-label" style={{color:'#7B8B84'}}>Typical career quiz</div>
+              <h3 style={{margin:'18px 0 6px', fontSize:24}}>45 static questions</h3>
+              <div className="pixel-list">
+                {compareQuiz.map(item => <div className="pixel-list-row" key={item}><span className="pixel-x">×</span><span>{item}</span></div>)}
               </div>
+              <div style={{marginTop:22, height:12, background:'#C9CEC7', border:'2px solid #10261D'}}><div style={{width:'30%', height:'100%', background:'#7FA58E'}} /></div>
+              <small style={{display:'block', marginTop:8, color:'#6B7B73'}}>A flat progress bar. That’s it.</small>
+            </div>
+
+            <div className="pixel-compare-panel dark">
+              <div className="pixel-label" style={{color:'#E8C95A'}}>Pehchaan</div>
+              <h3 style={{margin:'18px 0 6px', fontSize:24}}>9 short mini-games</h3>
+              <div className="pixel-list">
+                {comparePehchaan.map(item => <div className="pixel-list-row" key={item}><span className="pixel-check"><PixelIcon name="check" size={18} /></span><span>{item}</span></div>)}
+              </div>
+              <div style={{marginTop:22, height:12, background:'#123B2A', border:'2px solid #062A1F'}}><div style={{width:'72%', height:'100%', background:'#F3A6B8'}} /></div>
+              <small style={{display:'block', marginTop:8, color:'#AFC1B6'}}>Every tap teaches the model something real.</small>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Our Story Section */}
-      <section id="our-story" className="bg-green-primary py-32 px-6 border-t border-border-glass">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-sm font-bold tracking-widest text-sage uppercase mb-4">Our Mission</h2>
-          <h3 className="text-4xl md:text-5xl font-medium tracking-tight mb-12">Built for the decisions Pakistani students actually face.</h3>
-          
-          <p className="text-xl font-light text-text-muted leading-relaxed mb-8">
-            Pehchaan was created because traditional career counseling in Pakistan relies too heavily on grades, societal pressure, and outdated assumptions. 
-          </p>
-          <p className="text-xl font-light text-text-muted leading-relaxed">
-            We wanted to build an AI-native platform that helps the next generation of students in Pakistan discover their true potential based on how they actually think and solve problems, not just what they memorized for an exam.
-          </p>
+      <section id="games" className="pixel-section dark" style={{paddingTop:10}}>
+        <div className="pixel-container">
+          <div className="pixel-section-kicker" style={{color:'#E8C95A'}}>02 / games hub</div>
+          <h2 className="pixel-section-title">Six ways to show us who you are</h2>
+          <div className="pixel-games">
+            {games.map(game => (
+              <Link key={game.path} to={game.path} className="pixel-game-card">
+                <span className="pixel-game-icon"><PixelIcon name={game.icon} size={38} /></span>
+                <span className="pixel-game-title">{game.title}</span>
+                <span className="pixel-game-desc">{game.desc}</span>
+                <span className="pixel-game-arrow">Open game</span>
+              </Link>
+            ))}
+          </div>
+          <div className="pixel-stats">
+            <div className="pixel-stat"><strong>9</strong><span>Mini-games per run</span></div>
+            <div className="pixel-stat"><strong>12</strong><span>Traits measured</span></div>
+            <div className="pixel-stat"><strong>6</strong><span>Signal families</span></div>
+            <div className="pixel-stat"><strong>15m</strong><span>Typical start-to-finish</span></div>
+          </div>
         </div>
       </section>
-      
-      {/* Footer CTA */}
-      <section className="bg-green-deepest py-32 px-6 text-center border-t border-border-glass">
-        <h2 className="text-4xl md:text-6xl font-medium tracking-tight mb-10">Ready to discover your direction?</h2>
-        <Link 
-          to="/start" 
-          className="inline-block bg-ivory text-green-dark px-10 py-5 rounded-full text-xl font-semibold hover:bg-soft-white transition-all hover:scale-105"
-        >
-          Start Pehchaan →
-        </Link>
-        <div className="mt-20 flex justify-center items-center gap-2 text-sage/60 font-medium">
-          <span className="text-xl font-serif">پہچان</span>
-          <span className="text-sm">| Know yourself. Find your direction.</span>
+
+      <section id="journey" className="pixel-section light">
+        <div className="pixel-container" style={{textAlign:'center'}}>
+          <div className="pixel-section-kicker" style={{color:'#176044'}}>03 / your journey</div>
+          <h2 className="pixel-section-title">Curious → playing → discovering → exploring.</h2>
+          <p style={{maxWidth:760, margin:'0 auto', color:'#40564C', lineHeight:1.7}}>
+            Your results are framed as signals, patterns and strengths — not a clinical label. The goal is to help you explore possible paths with more context and more confidence.
+          </p>
+          <div style={{marginTop:28, display:'flex', justifyContent:'center', flexWrap:'wrap', gap:8}}>
+            {['Curious','Playing','Discovering','Progressing','Revealing','Exploring'].map((item, i) => (
+              <span key={item} className="pixel-label" style={{color:'#104D38'}}>{String(i+1).padStart(2,'0')} · {item}</span>
+            ))}
+          </div>
+          <div style={{marginTop:34}}>
+            <Link to="/start" className="pixel-button">Start your first run</Link>
+          </div>
         </div>
       </section>
+
+      <footer className="pixel-footer">
+        <div className="forest-floor" aria-hidden="true" />
+      </footer>
     </div>
   )
 }

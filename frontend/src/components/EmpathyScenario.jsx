@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress } from '../services/db'
+import PixelIcon from './PixelIcon'
 import { useNavigate } from 'react-router-dom'
 
 const SCENARIOS = [
@@ -29,7 +30,7 @@ function pickScenario() {
 }
 
 export default function EmpathyScenario() {
-  const { sessionId, updateTraits, advanceFlow } = useSession()
+  const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const [scenario] = useState(pickScenario)
   const [text, setText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -40,23 +41,24 @@ export default function EmpathyScenario() {
     setIsSubmitting(true)
 
     // Write local defaults unconditionally — never block on Gemini latency
+    // ALL scores on 0-100 scale to match Cognitive Profile display
     const wordCount = text.trim().split(/\s+/).filter(Boolean).length
     const hasSentences = (text.match(/[.!?]/g) || []).length
     // Empathy proxy: length + explicit people-language
-    const empathyProxy = Math.min(1.0,
-      (wordCount / 80) * 0.6 +
+    const empathyProxy = Math.round(Math.min(100,
+      ((wordCount / 80) * 0.6 +
       (text.toLowerCase().includes('feel') || text.toLowerCase().includes('understand') || text.toLowerCase().includes('listen') ? 0.25 : 0.05) +
-      0.1
-    )
-    const persistenceProxy  = Math.min(1.0, hasSentences / 8)
-    const communicationProxy = Math.min(1.0, wordCount / 70)
+      0.1) * 100
+    ))
+    const persistenceProxy  = Math.round(Math.min(100, (hasSentences / 8) * 100))
+    const communicationProxy = Math.round(Math.min(100, (wordCount / 70) * 100))
 
     updateTraits({
-      empathy:            empathyProxy,
-      persistence:        persistenceProxy,
-      communication:      communicationProxy,
-      memory:             persistenceProxy * 0.8,    // systematic multi-step response = memory proxy
-      attention_to_detail: persistenceProxy,
+      empathy:             Math.max(traits.empathy || 0, empathyProxy),
+      persistence:         Math.max(traits.persistence || 0, persistenceProxy),
+      communication:       Math.max(traits.communication || 0, communicationProxy),
+      memory:              Math.max(traits.memory || 0, Math.round(persistenceProxy * 0.8)),
+      attention_to_detail: Math.max(traits.attention_to_detail || 0, persistenceProxy),
     })
 
     // Fire-and-forget Gemini scoring
@@ -74,10 +76,14 @@ export default function EmpathyScenario() {
           }),
         })
         const scores = await response.json()
-        updateTraits({
-          ...scores,
-          attention_to_detail: scores.persistence ?? persistenceProxy,
+        // Gemini returns 0-1 — convert to 0-100 and use Math.max
+        const scaled = {}
+        Object.entries(scores).forEach(([key, val]) => {
+          const asPercent = Math.round((typeof val === 'number' ? val : 0.5) * 100)
+          scaled[key] = Math.max(traits[key] || 0, asPercent)
         })
+        scaled.attention_to_detail = Math.max(traits.attention_to_detail || 0, scaled.persistence || persistenceProxy)
+        updateTraits(scaled)
         if (sessionId) {
           await recordResponse(sessionId, 'empathy_scenario', {
             scenario_id: scenario.id,
@@ -99,8 +105,8 @@ export default function EmpathyScenario() {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
-      <div className="absolute top-6 left-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
+      <div className="absolute top-6 left-6 z-20">
         <button
           onClick={() => navigate('/')}
           className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2"
@@ -112,7 +118,7 @@ export default function EmpathyScenario() {
       <div className="flex flex-col items-center p-10 bg-soft-white rounded-[32px] shadow-2xl border border-border-glass max-w-2xl w-full mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
-          <span className="text-4xl">🧬</span>
+          <PixelIcon name="dna" size={42} />
           <h2 className="text-3xl font-medium tracking-tight">Empathy Scenario</h2>
         </div>
         <p className="text-xs uppercase tracking-widest text-text-muted mb-8 font-semibold">

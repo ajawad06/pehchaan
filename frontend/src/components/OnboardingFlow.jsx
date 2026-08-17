@@ -3,18 +3,19 @@ import { motion } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { useNavigate } from 'react-router-dom'
 import { recordResponse } from '../services/db'
+import PixelIcon from './PixelIcon'
 
 const INTEREST_CATEGORIES = [
-  { id: 'arts', icon: '🎨', label: 'Arts & Creative' },
-  { id: 'architecture', icon: '🏛️', label: 'Architecture & Design' },
-  { id: 'languages', icon: '🗣️', label: 'Languages & Lit' },
-  { id: 'technology', icon: '💻', label: 'Tech & Computing' },
-  { id: 'medicine', icon: '🧬', label: 'Medicine & Life Sci' },
-  { id: 'science', icon: '🔬', label: 'Science & Research' },
-  { id: 'business', icon: '📊', label: 'Business & Finance' },
-  { id: 'psychology', icon: '🧠', label: 'Psychology' },
-  { id: 'law', icon: '⚖️', label: 'Law & Public Policy' },
-  { id: 'engineering', icon: '⚙️', label: 'Engineering' },
+  { id: 'arts', icon: 'palette', label: 'Arts & Creative' },
+  { id: 'architecture', icon: 'building', label: 'Architecture & Design' },
+  { id: 'languages', icon: 'book', label: 'Languages & Lit' },
+  { id: 'technology', icon: 'calculator', label: 'Tech & Computing' },
+  { id: 'medicine', icon: 'heart', label: 'Medicine & Life Sci' },
+  { id: 'science', icon: 'flask', label: 'Science & Research' },
+  { id: 'business', icon: 'chart', label: 'Business & Finance' },
+  { id: 'psychology', icon: 'users', label: 'Psychology' },
+  { id: 'law', icon: 'scales', label: 'Law & Public Policy' },
+  { id: 'engineering', icon: 'hammer', label: 'Engineering' },
 ]
 
 const CAREER_VALUES = [
@@ -90,8 +91,8 @@ export default function OnboardingFlow() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
-      <div className="absolute top-6 left-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
+      <div className="absolute top-6 left-6 z-20">
         <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
           ← Back to Home
         </button>
@@ -141,7 +142,7 @@ export default function OnboardingFlow() {
                         : 'bg-ivory border border-border-glass text-green-dark hover:bg-green-primary/5 hover:border-green-primary/30'
                     }`}
                   >
-                    <span className="text-3xl mb-3">{cat.icon}</span>
+                    <span className="pixel-game-icon" style={{ width: 54, height: 54, marginBottom: 10 }}><PixelIcon name={cat.icon} size={34} /></span>
                     <span className="text-sm font-medium text-center">{cat.label}</span>
                   </button>
                 )
@@ -180,7 +181,7 @@ export default function OnboardingFlow() {
             onClick={handleNext}
             className="bg-green-primary text-ivory px-8 py-3 rounded-full font-medium hover:bg-green-dark transition-colors shadow-md"
           >
-            {step < 2 ? 'Next →' : 'Start Exploring 🚀'}
+            {step < 2 ? 'Next' : 'Start Exploring'}
           </button>
         </div>
       </motion.div>

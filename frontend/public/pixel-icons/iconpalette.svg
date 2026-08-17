@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" shape-rendering="crispEdges" width="24" height="24">
+  <!-- Palette: Artistic (A) -->
+  <path d="M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16z" fill="#EEE9D8"/>
+  <circle cx="9" cy="8" r="1.5" fill="#E56B6F"/>
+  <circle cx="15" cy="8" r="1.5" fill="#52B742"/>
+  <circle cx="15" cy="14" r="1.5" fill="#E8C95A"/>
+  <rect x="8" y="14" width="3" height="3" fill="#062A1F" rx="1.5"/>
+</svg>

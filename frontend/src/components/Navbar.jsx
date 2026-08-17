@@ -1,30 +1,44 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import PixelIcon from './PixelIcon'
 
 export default function Navbar() {
+  const [open, setOpen] = useState(false)
+
+  const close = () => {
+    setOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
-    <motion.nav 
-      initial={{ y: -50, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-5xl"
-    >
-      <div className="flex items-center justify-between px-8 py-4 bg-bg-glass backdrop-blur-xl border border-border-glass rounded-full shadow-2xl">
-        <Link to="/" className="text-xl font-bold tracking-widest text-ivory flex items-center gap-2">
-          PEHCHAAN
+    <nav className={`pixel-nav ${open ? 'mobile-open' : ''}`} aria-label="Primary navigation">
+      <div className="pixel-nav-inner">
+        <Link to="/" className="pixel-brand" onClick={close}>
+          <span className="pixel-brand-mark" aria-hidden="true"><PixelIcon name="spark" size={22} /></span>
+          <span className="pixel-brand-name">PEHCHAAN</span>
         </Link>
-        
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-text-muted">
-          <Link to="/" onClick={() => window.scrollTo(0,0)} className="hover:text-ivory transition-colors">Discover</Link>
-          <a href="#how-it-works" className="hover:text-ivory transition-colors">How It Works</a>
-          <a href="#insights" className="hover:text-ivory transition-colors">Insights</a>
-          <a href="#our-story" className="hover:text-ivory transition-colors">Our Story</a>
+
+        <div className="pixel-nav-links">
+          <Link to="/" onClick={close}>Discover</Link>
+          <a href="#how-it-works" onClick={() => setOpen(false)}>How It Works</a>
+          <a href="#games" onClick={() => setOpen(false)}>Games</a>
+          <a href="#journey" onClick={() => setOpen(false)}>Journey</a>
         </div>
-        
-        <Link to="/start" className="bg-ivory text-green-dark px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-soft-white transition-all hover:scale-105 shadow-sm">
-          Start Exploring
+
+        <Link to="/start" className="pixel-nav-start" onClick={() => setOpen(false)}>
+          Start
         </Link>
+
+        <button
+          type="button"
+          className="pixel-menu-btn"
+          aria-label={open ? 'Close menu' : 'Open menu'}
+          aria-expanded={open}
+          onClick={() => setOpen(v => !v)}
+        >
+          {open ? <PixelIcon name="close" size={22} /> : <PixelIcon name="menu" size={22} />}
+        </button>
       </div>
-    </motion.nav>
+    </nav>
   )
 }

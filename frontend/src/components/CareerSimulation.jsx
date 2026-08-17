@@ -15,11 +15,14 @@ export default function CareerSimulation() {
 
     // Completing the simulation is itself strong domain-exposure evidence.
     // Write unconditionally before any async call.
-    const localExposure = Math.min(1.0, text.trim().split(/\s+/).filter(Boolean).length / 80)
-    updateTraits({ domain_exposure: Math.max(0.6, localExposure) })
+    // All traits on 0-100 scale
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length
+    const localExposure = Math.round(Math.min(100, (wordCount / 80) * 100))
+    const finalExposure = Math.max(traits.domain_exposure || 0, Math.max(60, localExposure))
+    updateTraits({ domain_exposure: finalExposure })
 
     // Save the trait vector to Firestore immediately with what we have now
-    const snapshotTraits = { ...traits, domain_exposure: Math.max(0.6, localExposure) }
+    const snapshotTraits = { ...traits, domain_exposure: finalExposure }
     if (sessionId) {
       saveTraitVector(sessionId, snapshotTraits).catch(e =>
         console.warn('saveTraitVector failed:', e)
@@ -41,7 +44,14 @@ export default function CareerSimulation() {
           }),
         })
         const scores = await response.json()
-        updateTraits(scores)
+        
+        // Gemini returns 0-1 — convert to 0-100 and use Math.max
+        const scaled = {}
+        Object.entries(scores).forEach(([key, val]) => {
+          const asPercent = Math.round((typeof val === 'number' ? val : 0.5) * 100)
+          scaled[key] = Math.max(traits[key] || 0, asPercent)
+        })
+        updateTraits(scaled)
         if (sessionId) {
           await recordResponse(sessionId, 'career_simulation', {
             raw_response: text,
@@ -74,8 +84,8 @@ export default function CareerSimulation() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
-      <div className="absolute top-6 left-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
+      <div className="absolute top-6 left-6 z-20">
         <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
           ← Back to Home
         </button>

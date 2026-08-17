@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import PixelIcon from './PixelIcon'
 import { useSession } from '../store/SessionContext'
 import { saveRecommendations } from '../services/db'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -271,14 +272,14 @@ export default function ResultsScreen() {
 
 
   return (
-    <div className="flex flex-col items-center p-8 min-h-screen bg-ivory text-green-dark relative overflow-y-auto">
-      <div className="absolute top-6 left-6">
+    <div className="flex flex-col items-center p-8 pt-20 min-h-screen bg-ivory text-green-dark relative overflow-y-auto">
+      <div className="absolute top-6 left-6 z-20">
         <button onClick={() => window.location.href='/'} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
           ← Back to Home
         </button>
       </div>
 
-      <h1 className="text-5xl font-medium tracking-tight mb-2 text-center mt-8">
+      <h1 className="text-5xl font-medium tracking-tight mb-2 text-center">
         Your Pehchaan
         {isRefined && (
           <span className="ml-3 text-base font-semibold text-green-primary align-middle bg-green-primary/10 px-3 py-1 rounded-full">
@@ -295,7 +296,7 @@ export default function ResultsScreen() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-2xl mb-8 bg-green-primary/8 border border-green-primary/25 rounded-[24px] p-6 flex items-start gap-5"
         >
-          <div className="text-3xl mt-0.5">🎯</div>
+          <div className="text-3xl mt-0.5"><PixelIcon name="target" size={30} /></div>
           <div className="flex-1">
             <p className="font-semibold text-green-dark mb-1">
               Your top matches are all in the same field — can we narrow it down?
@@ -316,7 +317,7 @@ export default function ResultsScreen() {
             onClick={() => setSuggestedCluster(null)}
             className="text-text-muted hover:text-green-dark text-lg leading-none mt-0.5"
             aria-label="Dismiss"
-          >✕</button>
+          ><PixelIcon name="cross" size={22} /></button>
         </motion.div>
       )}
 
@@ -335,7 +336,7 @@ export default function ResultsScreen() {
       
       {error && (
         <div className="bg-red-500/10 p-6 rounded-2xl border border-red-500/20 max-w-2xl text-center mb-8">
-          <p className="text-red-600 font-medium mb-2">⚠️ {error}</p>
+          <p className="text-red-600 font-medium mb-2">{error}</p>
           <p className="text-sm text-red-500/80">Check that your VITE_API_URL in Vercel points to your Render backend (with https:// and no trailing slash). Then trigger a Manual Deploy on Render.</p>
           <p className="text-xs text-red-400/70 mt-2 font-mono">API URL being used: {import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000 (local)'}</p>
         </div>
@@ -350,7 +351,7 @@ export default function ResultsScreen() {
               initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
               className="bg-green-primary rounded-[32px] p-10 text-ivory shadow-2xl relative overflow-hidden"
             >
-              <div className="absolute -right-12 -top-12 text-[200px] opacity-5 font-black leading-none select-none">✦</div>
+              <div className="absolute -right-12 -top-12 opacity-5 select-none"><PixelIcon name="spark" size={180} /></div>
               <p className="text-xs uppercase tracking-widest font-bold text-sage mb-4">Your AI Career Analysis</p>
               <p className="text-xl leading-relaxed font-light text-ivory/95 relative z-10">{comprehensiveData.overall_analysis}</p>
             </motion.div>
@@ -393,17 +394,22 @@ export default function ResultsScreen() {
                     ['learning_agility','Learning Agility'],
                     ['creativity','Creativity'],
                     ['analytical_thinking','Analytical Thinking'],
-                  ].map(([key, label]) => (
+                  ].map(([key, label]) => {
+                    // Normalize: values > 1 are already 0-100, values <= 1.0 multiply by 100
+                    const raw = traits[key] || 0
+                    const displayVal = raw > 1.0 ? Math.round(raw) : Math.round(raw * 100)
+                    return (
                     <div key={key}>
                       <div className="flex justify-between text-sm mb-1 font-medium text-green-secondary">
                         <span>{label}</span>
-                        <span>{Math.round(traits[key] || 0)}%</span>
+                        <span>{displayVal}%</span>
                       </div>
                       <div className="h-1.5 bg-sage/10 rounded-full overflow-hidden">
-                        <div className="h-full bg-sage transition-all duration-1000 rounded-full" style={{ width: `${Math.min(traits[key] || 0, 100)}%` }}></div>
+                        <div className="h-full bg-sage transition-all duration-1000 rounded-full" style={{ width: `${Math.min(displayVal, 100)}%` }}></div>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 

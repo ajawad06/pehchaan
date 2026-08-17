@@ -57,27 +57,27 @@ export default function VisualSpatial() {
       quit: false,
     }
 
-    try {
-      const response = await fetch(`${API_URL}/submit_activity`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: sessionId || 'anonymous',
-          activity_id: 'visual_spatial',
-          difficulty_level: traits?.age_group?.includes('14') ? 1 : 3,
-          telemetry: telemetry
+    // Write spatial_reasoning unconditionally FIRST — never gate on API response
+    const spatialScore = Math.round(Math.max(10, Math.min(100, accuracy * 100)))
+    updateTraits({ spatial_reasoning: Math.max(traits.spatial_reasoning || 0, spatialScore) })
+
+    // Fire-and-forget telemetry
+    ;(async () => {
+      try {
+        await fetch(`${API_URL}/submit_activity`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: sessionId || 'anonymous',
+            activity_id: 'visual_spatial',
+            difficulty_level: traits?.age_group?.includes('14') ? 1 : 3,
+            telemetry: telemetry
+          })
         })
-      })
-      
-      const data = await response.json()
-      
-      if (data.estimated_skill_delta) {
-        const newScore = Math.max(0, Math.min(100, (traits.spatial_reasoning || 50) + (data.estimated_skill_delta * 10)))
-        updateTraits({ spatial_reasoning: newScore })
+      } catch (error) {
+        console.warn('VisualSpatial telemetry failed silently:', error)
       }
-    } catch (error) {
-      console.error("Failed to send telemetry to backend:", error)
-    }
+    })()
 
     if (sessionId) {
       await recordResponse(sessionId, 'visual_spatial', telemetry).catch(e => console.error("Firestore error:", e))
@@ -93,26 +93,26 @@ export default function VisualSpatial() {
     setAttempts(a => a + 1)
     setWrongAnswers(prev => [...prev, selected])
 
+    // Write spatial_reasoning unconditionally on every answer
+    const answerAccuracy = isCorrect ? 0.9 : 0.1
+    const spatialScore = Math.round(Math.max(10, Math.min(100, answerAccuracy * 100)))
+    updateTraits({ spatial_reasoning: Math.max(traits.spatial_reasoning || 0, spatialScore) })
+
     // Fire-and-forget telemetry
     ;(async () => {
       try {
         const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
         const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
-        const res = await fetch(`${API_URL}/submit_activity`, {
+        await fetch(`${API_URL}/submit_activity`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             user_id: sessionId || 'anonymous',
             activity_id: 'visual_spatial',
             difficulty_level: 3,
-            telemetry: { response_time_sec: timeElapsed, hints_used: 0, accuracy: isCorrect ? 0.9 : 0.1, attempts: attempts + 1, completed: true, quit: false, was_correct: isCorrect }
+            telemetry: { response_time_sec: timeElapsed, hints_used: 0, accuracy: answerAccuracy, attempts: attempts + 1, completed: true, quit: false, was_correct: isCorrect }
           })
         })
-        const data = await res.json()
-        if (data.estimated_skill_delta) {
-          const newScore = Math.max(0, Math.min(100, (traits.spatial_reasoning || 50) + (data.estimated_skill_delta * 10)))
-          updateTraits({ spatial_reasoning: newScore })
-        }
       } catch (e) { console.warn('Telemetry failed silently:', e) }
       if (sessionId) await recordResponse(sessionId, 'visual_spatial', { was_correct: isCorrect }).catch(e => console.error("Firestore error:", e))
     })()
@@ -126,8 +126,8 @@ export default function VisualSpatial() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
-      <div className="absolute top-6 left-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
+      <div className="absolute top-6 left-6 z-20">
         <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
           ← Back to Home
         </button>

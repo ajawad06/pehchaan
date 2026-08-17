@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" shape-rendering="crispEdges" width="24" height="24">
+  <!-- Graduation Cap: Social (S) -->
+  <path d="M4 10l8-4 8 4-8 4-8-4z" fill="#062A1F"/>
+  <path d="M8 12v4s2 2 4 2 4-2 4-2v-4" fill="#062A1F"/>
+  <path d="M20 10v6" stroke="#E8C95A" stroke-width="1"/>
+  <rect x="19" y="16" width="2" height="2" fill="#E8C95A"/>
+</svg>

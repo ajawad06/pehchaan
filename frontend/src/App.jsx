@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { useState } from 'react'
 import { SessionProvider } from './store/SessionContext'
 import OnboardingFlow from './components/OnboardingFlow'
 import PatternHunter from './components/PatternHunter'
@@ -26,17 +25,15 @@ import { useOfflineSync } from './services/offlineQueue'
 import './index.css'
 
 function App() {
-  const [theme, setTheme] = useState('theme-12-14')
   const isOnline = useOfflineSync()
 
   return (
     <SessionProvider>
       <Router>
         {!isOnline && (
-          <div className="w-full bg-red-600 text-white text-center py-1 font-bold text-sm absolute top-0 z-50">
-            Offline Mode Active
-          </div>
+          <div className="offline-ribbon">Offline Mode Active</div>
         )}
+        <div className={!isOnline ? 'offline-ribbon-spacer' : undefined}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/start" element={<OnboardingFlow />} />
@@ -60,6 +57,7 @@ function App() {
           <Route path="/results" element={<ResultsScreen />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </div>
       </Router>
     </SessionProvider>
   )

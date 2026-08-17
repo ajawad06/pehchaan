@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress } from '../services/db'
+import PixelIcon from './PixelIcon'
 import { useNavigate } from 'react-router-dom'
 
 const SCENARIOS = [
@@ -32,7 +33,7 @@ function pickScenario() {
 }
 
 export default function NarrativeBuilder() {
-  const { sessionId, updateTraits, advanceFlow } = useSession()
+  const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const [scenario] = useState(pickScenario)
   const [text, setText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -43,11 +44,12 @@ export default function NarrativeBuilder() {
     setIsSubmitting(true)
 
     // Write local defaults unconditionally — never block on Gemini latency
+    // ALL scores on 0-100 scale to match Cognitive Profile display
     const wordCount = text.trim().split(/\s+/).filter(Boolean).length
     updateTraits({
-      verbal_reasoning: Math.min(1.0, wordCount / 80),
-      communication:    Math.min(1.0, wordCount / 65),
-      creativity:       Math.min(1.0, wordCount / 100),
+      verbal_reasoning: Math.max(traits.verbal_reasoning || 0, Math.round(Math.min(100, (wordCount / 80) * 100))),
+      communication:    Math.max(traits.communication || 0, Math.round(Math.min(100, (wordCount / 65) * 100))),
+      creativity:       Math.max(traits.creativity || 0, Math.round(Math.min(100, (wordCount / 100) * 100))),
     })
 
     // Fire-and-forget Gemini scoring
@@ -65,7 +67,13 @@ export default function NarrativeBuilder() {
           }),
         })
         const scores = await response.json()
-        updateTraits(scores)
+        // Gemini returns 0-1 — convert to 0-100 and Math.max to preserve higher
+        const scaled = {}
+        Object.entries(scores).forEach(([key, val]) => {
+          const asPercent = Math.round((typeof val === 'number' ? val : 0.5) * 100)
+          scaled[key] = Math.max(traits[key] || 0, asPercent)
+        })
+        updateTraits(scaled)
         if (sessionId) {
           await recordResponse(sessionId, 'narrative_builder', {
             scenario_id: scenario.id,
@@ -87,8 +95,8 @@ export default function NarrativeBuilder() {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-6 relative">
-      <div className="absolute top-6 left-6">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
+      <div className="absolute top-6 left-6 z-20">
         <button
           onClick={() => navigate('/')}
           className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2"
@@ -100,7 +108,7 @@ export default function NarrativeBuilder() {
       <div className="flex flex-col items-center p-10 bg-soft-white rounded-[32px] shadow-2xl border border-border-glass max-w-2xl w-full mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
-          <span className="text-4xl">🗣️</span>
+          <PixelIcon name="users" size={42} />
           <h2 className="text-3xl font-medium tracking-tight">Narrative Builder</h2>
         </div>
         <p className="text-xs uppercase tracking-widest text-text-muted mb-8 font-semibold">
