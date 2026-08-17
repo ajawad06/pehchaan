@@ -116,14 +116,14 @@ export default function InstinctSwipe() {
         </button>
       </div>
 
-      <div className="w-full max-w-md mb-8">
+      <div className="w-full max-w-md mb-8 mt-4">
         <h2 className="text-3xl font-medium tracking-tight mb-2 text-center">Instinct Swipe</h2>
         <p className="text-text-muted text-center mb-6">Swipe right to like, left to dislike. Trust your gut — there's no right answer.</p>
         
         {/* Progress Bar */}
-        <div className="h-1.5 bg-green-primary/10 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-green-primary/10 overflow-hidden progress-pixel">
           <div 
-            className="h-full bg-green-primary transition-all duration-300 rounded-full"
+            className="h-full bg-green-primary transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -134,7 +134,7 @@ export default function InstinctSwipe() {
       <div className="relative w-full max-w-md h-72 flex items-center justify-center">
         {/* Ghost card behind */}
         {current + 1 < CARDS.length && (
-          <div className="absolute inset-0 bg-soft-white rounded-[32px] border border-border-glass shadow-md scale-95 translate-y-2" />
+          <div className="absolute inset-0 pixel-panel scale-95 translate-y-2 opacity-50" />
         )}
 
         <AnimatePresence>
@@ -148,7 +148,7 @@ export default function InstinctSwipe() {
               else if (info.offset.x < -80) handleSwipe(false)
               else x.set(0)
             }}
-            className="absolute inset-0 rounded-[32px] border border-border-glass shadow-2xl cursor-grab active:cursor-grabbing flex flex-col items-center justify-center p-10 select-none"
+            className="absolute inset-0 pixel-panel cursor-grab active:cursor-grabbing flex flex-col items-center justify-center p-10 select-none"
           >
             {/* Like/Dislike Overlays */}
             <motion.div style={{ opacity: likeOpacity }} className="pixel-swipe-stamp like"><PixelIcon name="check" size={18} /> LIKE</motion.div>
@@ -164,12 +164,14 @@ export default function InstinctSwipe() {
       <div className="flex gap-8 mt-10">
         <button 
           onClick={() => handleSwipe(false)}
-          className="w-16 h-16 bg-soft-white border-2 border-[#7F2439] text-[#7F2439] text-2xl shadow-md hover:bg-[#F3A6B8] transition-colors"
-        ><PixelIcon name="cross" size={24} /></button>
+          className="pixel-icon-btn"
+          style={{ width: '64px', height: '64px', backgroundColor: '#FAF8EF' }}
+        ><PixelIcon name="cross" size={24} color="#7F2439" /></button>
         <button 
           onClick={() => handleSwipe(true)}
-          className="w-16 h-16 bg-green-primary text-ivory border-2 border-green-deepest text-2xl shadow-md hover:bg-green-dark transition-colors"
-        ><PixelIcon name="check" size={24} /></button>
+          className="pixel-icon-btn"
+          style={{ width: '64px', height: '64px', backgroundColor: '#104D38' }}
+        ><PixelIcon name="check" size={24} color="#F5F1E3" /></button>
       </div>
     </div>
   )

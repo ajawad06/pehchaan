@@ -69,7 +69,7 @@ export default function CareerSimulation() {
     setIsSubmitting(false)
   }
 
-  const topInterest = traits?.interests 
+  const topInterest = traits?.interests && Object.keys(traits.interests).length > 0
     ? Object.keys(traits.interests).reduce((a, b) => traits.interests[a] > traits.interests[b] ? a : b)
     : 'your top career field';
 

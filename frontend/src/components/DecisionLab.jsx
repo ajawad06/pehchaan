@@ -92,7 +92,7 @@ export default function DecisionLab() {
         </button>
       </div>
 
-      <div className="flex flex-col items-center justify-center p-10 bg-soft-white rounded-[32px] shadow-2xl border border-border-glass max-w-2xl w-full mx-auto">
+      <div className="flex flex-col items-center justify-center p-10 pixel-panel max-w-2xl w-full mx-auto mt-4">
         <div className="flex justify-between items-center w-full mb-6">
           <h2 className="text-3xl font-medium tracking-tight">Decision Lab</h2>
           <span className="text-text-muted text-sm uppercase tracking-widest font-bold">Scenario {current + 1}/{SCENARIOS.length}</span>
@@ -104,7 +104,7 @@ export default function DecisionLab() {
             <button 
               key={i}
               onClick={() => handleChoice(opt)}
-              className="w-full py-5 px-6 text-left border border-border-glass rounded-2xl bg-ivory hover:bg-green-primary hover:text-ivory hover:border-green-primary transition-all font-medium shadow-sm"
+              className="w-full py-5 px-6 text-left border-2 border-border-glass bg-ivory hover:bg-green-primary hover:text-ivory hover:border-green-primary transition-all font-medium shadow-sm"
             >
               {opt.text}
             </button>

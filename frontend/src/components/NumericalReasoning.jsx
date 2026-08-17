@@ -116,19 +116,19 @@ export default function NumericalReasoning() {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full bg-soft-white p-8 rounded-[32px] shadow-2xl border border-border-glass"
+        className="max-w-xl w-full pixel-panel p-8 mt-4"
       >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-medium tracking-tight">Speed Math</h2>
           <div className="flex space-x-4">
-            <span className={`font-mono font-medium px-3 py-1 rounded-full ${timeElapsed > 45 ? 'bg-red-500/10 text-red-600 animate-pulse' : 'bg-green-primary/5 text-green-secondary'}`}>
+            <span className={`font-mono font-medium px-3 py-1 border-2 border-current ${timeElapsed > 45 ? 'bg-[#F4CCD5] text-[#7F2439] animate-pulse' : 'bg-green-primary/5 text-green-secondary'}`}>
               ⏱ {MAX_TIME - timeElapsed}s left
             </span>
           </div>
         </div>
         
-        <div className="bg-ivory rounded-2xl p-6 mb-8 border border-green-primary/10">
-          <p className="text-sm text-text-muted text-center mb-4">Question {current + 1} of {QUESTIONS.length}</p>
+        <div className="bg-ivory border-2 border-border-glass p-6 mb-8">
+          <p className="text-sm text-text-muted text-center mb-4 font-bold tracking-widest uppercase">Question {current + 1} of {QUESTIONS.length}</p>
           <p className="text-5xl font-mono text-center mb-4 text-green-dark font-bold">{QUESTIONS[current]?.q} = ?</p>
         </div>
         
@@ -139,10 +139,10 @@ export default function NumericalReasoning() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Your answer..."
-              className="flex-1 bg-ivory border border-border-glass rounded-xl px-5 py-4 text-green-dark text-xl font-mono text-center focus:outline-none focus:border-green-primary shadow-sm"
+              className="flex-1 bg-ivory border-2 border-border-glass px-5 py-4 text-green-dark text-xl font-mono text-center focus:outline-none focus:border-green-primary"
               autoFocus
             />
-            <button type="submit" className="bg-green-primary text-ivory font-medium px-8 py-4 rounded-xl hover:bg-green-dark transition-colors shadow-md">
+            <button type="submit" className="pixel-button">
               Enter
             </button>
           </form>
