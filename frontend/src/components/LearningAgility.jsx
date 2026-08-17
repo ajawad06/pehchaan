@@ -8,14 +8,14 @@ import BackButton from './BackButton'
 
 const QUESTIONS = [
   // Phase 1 (Base Rules)
-  { p: 1, base: 5, ops: ['▲'], text: '5 ▲', ans: 8 },
-  { p: 1, base: 4, ops: ['●'], text: '4 ●', ans: 8 },
-  { p: 1, base: 10, ops: ['■'], text: '10 ■', ans: 6 },
-  { p: 1, base: 3, ops: ['▲', '●'], text: '3 ▲ ●', ans: 12 }, // (3+3)*2
-  // Phase 2 (New Rule introduced: ★ = Square it)
-  { p: 2, base: 3, ops: ['★'], text: '3 ★', ans: 9 },
-  { p: 2, base: 2, ops: ['▲', '★'], text: '2 ▲ ★', ans: 25 }, // (2+3)^2 = 25
-  { p: 2, base: 5, ops: ['★', '■'], text: '5 ★ ■', ans: 21 }, // (5^2)-4 = 21
+  { p: 1, base: 'CAT', ops: ['▲'], text: 'CAT ▲', ans: 'TAC' },
+  { p: 1, base: 'DOG', ops: ['●'], text: 'DOG ●', ans: 'DOGS' },
+  { p: 1, base: 'ART', ops: ['■'], text: 'ART ■', ans: 'RT' },
+  { p: 1, base: 'PEN', ops: ['▲', '●'], text: 'PEN ▲ ●', ans: 'NEPS' }, // Reverse -> NEP -> Add S
+  // Phase 2 (New Rule introduced: ★ = Duplicate it)
+  { p: 2, base: 'BAT', ops: ['★'], text: 'BAT ★', ans: 'BATBAT' },
+  { p: 2, base: 'CAT', ops: ['▲', '★'], text: 'CAT ▲ ★', ans: 'TACTAC' }, // Reverse -> TAC -> Duplicate
+  { p: 2, base: 'ART', ops: ['★', '■'], text: 'ART ★ ■', ans: 'RTART' }, // Duplicate -> ARTART -> Remove first
 ]
 
 export default function LearningAgility() {
@@ -35,20 +35,20 @@ export default function LearningAgility() {
     
     setAttempts(a => a + 1)
     
-    if (parseInt(input) === QUESTIONS[current].ans) {
+    // Check correctness but advance either way
+    if (input.trim() === QUESTIONS[current].ans) {
       setScore(s => s + 1)
-      setInput('')
-      
-      if (current === 3 && phase === 'practice') {
-        setPhase('intro2')
-        setCurrent(c => c + 1)
-      } else if (current + 1 < QUESTIONS.length) {
-        setCurrent(c => c + 1)
-      } else {
-        finishGame()
-      }
+    }
+    
+    setInput('')
+    
+    if (current === 3 && phase === 'practice') {
+      setPhase('intro2')
+      setCurrent(c => c + 1)
+    } else if (current + 1 < QUESTIONS.length) {
+      setCurrent(c => c + 1)
     } else {
-      setInput('')
+      finishGame()
     }
   }
 
@@ -113,11 +113,11 @@ export default function LearningAgility() {
         {phase === 'intro1' && (
           <div className="space-y-6">
             <p className="text-lg text-text-muted">Learn this new system. Read left to right.</p>
-            <div className="bg-ivory rounded-2xl p-6 border border-green-primary/10 text-xl font-mono text-left space-y-4 max-w-sm mx-auto">
-              <p><span className="text-blue-500">▲</span> means <b>Add 3</b></p>
-              <p><span className="text-red-500">●</span> means <b>Multiply by 2</b></p>
-              <p><span className="text-orange-500">■</span> means <b>Subtract 4</b></p>
-            </div>
+                <div className="bg-ivory border border-border-glass p-6 rounded-xl space-y-4 mb-8 text-left font-mono">
+                  <p><span className="text-blue-500">▲</span> means <strong>Reverse the word</strong></p>
+                  <p><span className="text-red-500">●</span> means <strong>Add 'S' to the end</strong></p>
+                  <p><span className="text-orange-500">■</span> means <strong>Remove the first letter</strong></p>
+                </div>
             <button onClick={() => setPhase('practice')} className="bg-green-primary text-ivory px-8 py-4 rounded-full font-medium hover:bg-green-dark transition-colors shadow-md w-full">
               Start Practice
             </button>
@@ -127,10 +127,10 @@ export default function LearningAgility() {
         {phase === 'intro2' && (
           <div className="space-y-6">
             <p className="text-lg text-text-muted">Great. Now, a new rule is introduced:</p>
-            <div className="bg-ivory rounded-2xl p-6 border border-green-primary/10 text-xl font-mono text-left space-y-4 max-w-sm mx-auto">
-              <p><span className="pixel-math-token">*</span> means <b>Square the number</b> (multiply by itself)</p>
+            <div className="bg-ivory border border-border-glass p-6 rounded-xl space-y-4 mb-8 text-left font-mono">
+              <p><span className="text-purple-500">★</span> means <strong>Duplicate the word</strong></p>
             </div>
-            <button onClick={() => setPhase('test')} className="bg-green-primary text-ivory px-8 py-4 rounded-full font-medium hover:bg-green-dark transition-colors shadow-md w-full">
+            <button onClick={() => setPhase('test')} className="pixel-button w-full" style={{ color: '#041C14' }}>
               Continue
             </button>
           </div>
@@ -141,16 +141,16 @@ export default function LearningAgility() {
             <p className="text-sm text-text-muted uppercase tracking-widest">{phase}</p>
             
             <div className="bg-ivory rounded-2xl p-8 border border-green-primary/10">
-              <p className="text-5xl font-mono tracking-widest font-bold text-green-dark">
+              <p className="text-4xl sm:text-5xl font-mono tracking-widest font-bold text-green-dark font-clean">
                 {QUESTIONS[current].text} = ?
               </p>
             </div>
 
             <form onSubmit={handleAnswer} className="flex gap-4">
               <input 
-                type="number" 
+                type="text" 
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => setInput(e.target.value.toUpperCase())}
                 placeholder="Answer..."
                 className="flex-1 bg-ivory border border-border-glass rounded-xl px-5 py-4 text-green-dark text-2xl font-mono text-center focus:outline-none focus:border-green-primary shadow-sm"
                 autoFocus

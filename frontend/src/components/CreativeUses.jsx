@@ -5,11 +5,19 @@ import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import PixelIcon from './PixelIcon'
 import BackButton from './BackButton'
+const ITEMS = [
+  { name: 'a PAPERCLIP', desc: 'Think outside the box. It doesn\'t just have to hold papers!' },
+  { name: 'a COFFEE MUG', desc: 'Think outside the box. It doesn\'t just have to hold liquids!' },
+  { name: 'an OLD TIRE', desc: 'Think outside the box. It doesn\'t just belong on a car!' },
+  { name: 'a CARDBOARD BOX', desc: 'Think outside the box. What else could this be used for?' },
+  { name: 'a RUBBER BAND', desc: 'Think outside the box. It\'s elastic, what else can it do?' }
+]
 
 export default function CreativeUses() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
   
+  const [targetItem] = useState(() => ITEMS[Math.floor(Math.random() * ITEMS.length)])
   const [ideas, setIdeas] = useState([])
   const [currentIdea, setCurrentIdea] = useState('')
   const [startTs, setStartTs] = useState(Date.now())
@@ -109,8 +117,8 @@ export default function CreativeUses() {
         </div>
         
         <div className="bg-ivory rounded-2xl p-6 mb-8 border border-green-primary/10">
-          <p className="text-xl font-medium text-center mb-2 leading-relaxed">How many different uses can you think of for a <span className="text-green-primary font-bold">BRICK</span>?</p>
-          <p className="text-sm text-text-muted text-center">Think outside the box. A brick doesn't just have to be for building walls!</p>
+          <p className="text-xl font-medium text-center mb-2 leading-relaxed">How many different uses can you think of for <span className="text-green-primary font-bold">{targetItem.name}</span>?</p>
+          <p className="text-sm text-text-muted text-center">{targetItem.desc}</p>
         </div>
         
         {!completed ? (
