@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
+import PixelIcon from './PixelIcon'
 
 const SEQUENCES = [
   ['7', 'K', '3'],
@@ -100,31 +101,35 @@ export default function MemoryGame() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
       <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
-          ← Back to Home
+        <button onClick={() => navigate('/')} className="pixel-button ghost" style={{ fontSize: '13px' }}>
+          ← Back
         </button>
       </div>
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full bg-soft-white p-8 rounded-[32px] shadow-2xl border border-border-glass text-center"
+        className="max-w-xl w-full pixel-panel p-8 text-center"
       >
-        <h2 className="text-3xl font-medium tracking-tight mb-6">Working Memory</h2>
+        <h2 className="text-3xl font-medium tracking-tight mb-6 flex items-center justify-center gap-3">
+          <PixelIcon name="clover" size={24} />
+          Working Memory
+          <PixelIcon name="clover" size={24} />
+        </h2>
         
         {phase === 'ready' && (
           <div className="space-y-6">
             <p className="text-lg text-text-muted">You will see a sequence of characters. Remember them exactly as they appear.</p>
-            <button onClick={startLevel} className="bg-green-primary text-ivory px-8 py-4 rounded-full font-medium hover:bg-green-dark transition-colors shadow-md">
-              Start Level {level + 1}
+            <button onClick={startLevel} className="pixel-button pink px-10 py-3 text-lg">
+              Start Level {level + 1} →
             </button>
           </div>
         )}
 
         {phase === 'showing' && (
-          <div className="py-12 bg-ivory rounded-2xl border border-green-primary/10">
-            <p className="text-5xl font-mono tracking-[1em] font-bold text-green-dark ml-4">
-              {SEQUENCES[level].join('')}
+          <div className="py-12 bg-green-dark text-ivory border-4 border-green-deepest shadow-[4px_4px_0_#041C14] mb-4">
+            <p className="text-5xl font-mono tracking-[0.5em] font-bold ml-4">
+              {SEQUENCES[level].join(' ')}
             </p>
           </div>
         )}
@@ -138,12 +143,12 @@ export default function MemoryGame() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Enter sequence..."
-                className="w-full bg-ivory border border-border-glass rounded-xl px-5 py-4 text-green-dark text-2xl font-mono text-center focus:outline-none focus:border-green-primary shadow-sm uppercase"
+                className="w-full bg-ivory border-4 border-green-deepest px-5 py-4 text-green-dark text-2xl font-mono text-center focus:outline-none shadow-[4px_4px_0_#041C14] uppercase"
                 autoFocus
                 autoComplete="off"
               />
-              <button type="submit" className="bg-green-primary text-ivory font-medium px-8 py-4 rounded-xl hover:bg-green-dark transition-colors shadow-md w-full">
-                Submit
+              <button type="submit" className="pixel-button pink w-full text-lg py-3">
+                Submit →
               </button>
             </form>
           </div>

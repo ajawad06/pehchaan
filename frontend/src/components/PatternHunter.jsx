@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
+import PixelIcon from './PixelIcon'
 
 const QUESTIONS = [
   { 
@@ -187,39 +188,43 @@ export default function PatternHunter() {
         key={current}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full bg-soft-white p-8 rounded-[32px] shadow-2xl border border-border-glass"
+        className="max-w-xl w-full pixel-panel p-8 mt-4"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-medium tracking-tight">Pattern Hunter</h2>
-          <div className="flex space-x-4 items-center">
-            <span className="text-green-secondary font-mono font-medium px-3 py-1 bg-green-primary/5 rounded-full">⏱ {timeElapsed}s</span>
-            <span className="text-text-muted text-sm uppercase tracking-widest font-bold">Stage {current + 1}/{QUESTIONS.length}</span>
+          <h2 className="text-3xl font-medium tracking-tight flex items-center gap-3">
+            <PixelIcon name="clover" size={24} />
+            Pattern Hunter
+          </h2>
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-text-muted text-[10px] uppercase tracking-widest font-bold">Stage {current + 1}/{QUESTIONS.length}</span>
+            <span className="text-green-dark font-mono font-medium px-2 py-0.5 border-2 border-green-deepest bg-ivory text-xs">⏱ {timeElapsed}s</span>
           </div>
         </div>
         
-        <p className="text-2xl mb-10 font-medium leading-relaxed">{q.text}</p>
+        <div className="w-full bg-ivory border-2 border-border-glass p-6 mb-8 text-center text-xl font-medium leading-relaxed">
+          {q.text}
+        </div>
         
-        <div className="w-full space-y-3 mb-8">
+        <div className="w-full grid grid-cols-4 gap-3 mb-8">
           {q.options.map(opt => (
             <button 
               key={opt}
               onClick={() => handleAnswer(opt)}
-              className="w-full py-4 px-6 text-left border rounded-2xl transition-all font-medium border-green-primary/10 bg-ivory hover:bg-green-primary hover:text-ivory shadow-sm"
+              className="py-4 px-2 text-center border-2 border-green-deepest bg-ivory hover:bg-green-primary hover:text-ivory shadow-[3px_3px_0_#041C14] transition-all font-mono text-xl font-bold"
             >
               {opt}
             </button>
           ))}
         </div>
 
-        <div className="flex justify-between items-center mt-8 pt-6 border-t border-green-primary/10">
+        <div className="flex justify-between items-center mt-8 pt-6 border-t-2 border-border-glass">
           <button 
             onClick={useHint}
             disabled={showHint}
-            className={`text-sm px-6 py-2 rounded-full border transition-colors font-medium ${
-              showHint ? 'border-border-glass text-text-muted' : 'border-green-secondary text-green-secondary hover:bg-green-secondary hover:text-ivory'
-            }`}
+            className={`pixel-button text-xs py-2 px-4 ${showHint ? 'opacity-50 cursor-not-allowed' : 'ghost'}`}
+            style={showHint ? { background: 'transparent', color: 'var(--muted)', borderColor: 'var(--muted)' } : {}}
           >
-            {showHint ? "Hint Used" : "Need a hint?"}
+            {showHint ? "Hint Used" : "? Need a hint?"}
           </button>
           
           <AnimatePresence>

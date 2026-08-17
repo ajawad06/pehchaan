@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
+import PixelIcon from './PixelIcon'
 
 export default function DataDetective() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
@@ -145,36 +146,40 @@ export default function DataDetective() {
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-2xl w-full bg-soft-white p-8 rounded-[32px] shadow-2xl border border-border-glass"
+        className="max-w-2xl w-full pixel-panel p-8 mt-4"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-medium tracking-tight">Data Detective</h2>
-          <span className="text-green-secondary font-mono font-medium px-3 py-1 bg-green-primary/5 rounded-full">⏱ {timeElapsed}s</span>
+          <h2 className="text-3xl font-medium tracking-tight flex items-center gap-3">
+            <PixelIcon name="clover" size={24} />
+            Data Detective
+            <PixelIcon name="clover" size={24} />
+          </h2>
+          <span className="text-green-dark font-mono font-medium px-3 py-1 bg-ivory border-2 border-green-deepest shadow-[3px_3px_0_#041C14]">⏱ {timeElapsed}s</span>
         </div>
         
         {/* Dataset Table */}
-        <div className="bg-ivory rounded-2xl overflow-hidden mb-8 border border-border-glass shadow-sm">
+        <div className="bg-ivory mb-8 border-2 border-green-deepest shadow-[4px_4px_0_#041C14]">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-green-primary/5 text-green-secondary text-sm tracking-wide uppercase">
-                <th className="p-4 border-b border-border-glass font-medium">Month</th>
-                <th className="p-4 border-b border-border-glass font-medium">Revenue (Rs.)</th>
-                <th className="p-4 border-b border-border-glass font-medium">Active Users</th>
+              <tr className="bg-green-deepest text-ivory text-xs tracking-widest uppercase">
+                <th className="p-3 border-b-2 border-green-deepest font-medium">Month</th>
+                <th className="p-3 border-b-2 border-green-deepest font-medium">Revenue (Rs.)</th>
+                <th className="p-3 border-b-2 border-green-deepest font-medium">Active Users</th>
               </tr>
             </thead>
             <tbody>
               {dataset.map((row, i) => (
-                <tr key={i} className="border-b border-border-glass last:border-0 hover:bg-green-primary/5 transition-colors">
-                  <td className="p-4 text-green-dark">{row.month}</td>
-                  <td className="p-4 text-green-dark font-mono font-medium">{row.revenue}</td>
-                  <td className="p-4 text-green-dark font-mono font-medium">{row.users}</td>
+                <tr key={i} className="border-b border-border-glass last:border-0 hover:bg-green-primary/5 transition-colors text-sm">
+                  <td className="p-3 text-green-dark">{row.month}</td>
+                  <td className="p-3 text-green-dark font-mono font-medium">{row.revenue}</td>
+                  <td className="p-3 text-green-dark font-mono font-medium">{row.users}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <p className="text-xl text-green-dark mb-8 font-medium leading-relaxed">{question}</p>
+        <p className="text-lg text-green-dark mb-6 font-medium leading-relaxed">{question}</p>
         
         <div className="w-full space-y-3 mb-8">
           {options.map(opt => {
@@ -184,10 +189,10 @@ export default function DataDetective() {
                 key={opt}
                 onClick={() => handleAnswer(opt)}
                 disabled={isWrong}
-                className={`w-full py-4 px-6 text-left border rounded-2xl transition-all font-medium ${
+                className={`w-full py-4 px-6 text-left border-2 transition-all font-medium text-sm ${
                   isWrong 
                     ? 'border-red-500/20 bg-red-500/5 text-red-500/50 cursor-not-allowed'
-                    : 'border-border-glass bg-ivory hover:bg-green-primary hover:text-ivory shadow-sm'
+                    : 'border-green-deepest bg-ivory hover:bg-green-primary hover:text-ivory shadow-[3px_3px_0_#041C14]'
                 }`}
               >
                 {opt}
@@ -196,15 +201,14 @@ export default function DataDetective() {
           })}
         </div>
 
-        <div className="flex justify-between items-center mt-8 pt-6 border-t border-green-primary/10">
+        <div className="flex justify-between items-center mt-8 pt-6 border-t-2 border-border-glass">
           <button 
             onClick={() => { setHintsUsed(h => h + 1); setShowHint(true) }}
             disabled={showHint}
-            className={`text-sm px-6 py-2 rounded-full border transition-colors font-medium ${
-              showHint ? 'border-border-glass text-text-muted' : 'border-green-secondary text-green-secondary hover:bg-green-secondary hover:text-ivory'
-            }`}
+            className={`pixel-button text-xs py-2 px-4 ${showHint ? 'opacity-50 cursor-not-allowed' : 'ghost'}`}
+            style={showHint ? { background: 'transparent', color: 'var(--muted)', borderColor: 'var(--muted)' } : {}}
           >
-            {showHint ? "Hint Used" : "Need a hint?"}
+            {showHint ? "Hint Used" : "? Need a hint?"}
           </button>
           
           <AnimatePresence>

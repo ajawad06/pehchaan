@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress, saveTraitVector } from '../services/db'
 import { useNavigate } from 'react-router-dom'
+import PixelIcon from './PixelIcon'
 
 export default function CareerSimulation() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
@@ -86,31 +87,59 @@ export default function CareerSimulation() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
       <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
-          ← Back to Home
+        <button onClick={() => navigate('/')} className="pixel-button ghost" style={{ fontSize: '13px' }}>
+          ← Back
         </button>
       </div>
 
-      <div className="flex flex-col items-center justify-center p-10 bg-soft-white rounded-[32px] shadow-2xl border border-border-glass max-w-2xl w-full mx-auto">
-        <h2 className="text-3xl font-medium tracking-tight mb-6 capitalize">{topInterest} Simulation</h2>
-        <p className="text-lg mb-10 text-center text-text-muted leading-relaxed">
+      <div className="flex flex-col items-center justify-center p-10 pixel-panel max-w-4xl w-full mx-auto mt-4 relative">
+        <div className="absolute top-8 right-8">
+          <PixelIcon name="spark" size={32} />
+        </div>
+        <h2 className="text-3xl font-medium tracking-tight mb-6 capitalize flex items-center gap-3">
+          <PixelIcon name="clover" size={24} />
+          {topInterest} Simulation
+          <PixelIcon name="clover" size={24} />
+        </h2>
+        <p className="text-lg mb-8 text-center text-green-dark leading-relaxed font-medium">
           {simulationPrompt}
         </p>
         
-        <textarea 
-          className="w-full h-40 p-6 bg-ivory border border-border-glass rounded-2xl focus:outline-none focus:border-green-primary mb-8 text-green-dark shadow-sm resize-none"
-          placeholder="Type your response here..."
-          value={text}
-          onChange={e => setText(e.target.value)}
-        />
+        <div className="w-full flex gap-4">
+          <textarea 
+            className="flex-1 h-64 p-6 bg-ivory border-2 border-green-deepest focus:outline-none shadow-[4px_4px_0_#041C14] mb-8 text-green-dark resize-none font-mono text-lg"
+            style={{ 
+              backgroundImage: 'linear-gradient(#B6C8BE 1px, transparent 1px), linear-gradient(90deg, #B6C8BE 1px, transparent 1px)', 
+              backgroundSize: '24px 24px',
+              lineHeight: '24px'
+            }}
+            placeholder="Start drafting here..."
+            value={text}
+            onChange={e => setText(e.target.value)}
+          />
+          
+          {(topInterest === 'architecture' || topInterest === 'arts') && (
+            <div className="w-20 shrink-0 bg-ivory border-2 border-green-deepest shadow-[4px_4px_0_#041C14] p-2 flex flex-col items-center gap-4 h-64">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-green-dark mb-2">Tools</div>
+              <button className="p-2 border-2 border-green-deepest bg-[#FAF8EF] hover:bg-green-primary/10"><PixelIcon name="spark" size={20} /></button>
+              <button className="p-2 border-2 border-green-deepest bg-green-primary text-ivory"><PixelIcon name="hammer" size={20} /></button>
+              <button className="p-2 border-2 border-green-deepest bg-[#FAF8EF] hover:bg-green-primary/10"><PixelIcon name="palette" size={20} /></button>
+            </div>
+          )}
+        </div>
         
-        <button 
-          onClick={handleSubmit}
-          disabled={isSubmitting || text.length < 10}
-          className="w-full py-4 bg-green-primary text-ivory font-medium rounded-full hover:bg-green-dark disabled:opacity-50 transition-colors shadow-md"
-        >
-          {isSubmitting ? 'Finalize & View Results' : 'Submit'}
-        </button>
+        <div className="w-full flex justify-between items-center">
+          <button onClick={() => setText('')} className="pixel-button ghost px-6 py-2">
+            <PixelIcon name="cross" size={14} /> Clear
+          </button>
+          <button 
+            onClick={handleSubmit}
+            disabled={isSubmitting || text.length < 10}
+            className="pixel-button px-10 py-3 disabled:opacity-50"
+          >
+            {isSubmitting ? 'Finalize...' : 'Submit Design →'}
+          </button>
+        </div>
       </div>
     </div>
   )

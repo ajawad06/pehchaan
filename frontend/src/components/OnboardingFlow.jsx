@@ -93,8 +93,8 @@ export default function OnboardingFlow() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
       <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
-          ← Back to Home
+        <button onClick={() => navigate('/')} className="pixel-button ghost" style={{ fontSize: '13px' }}>
+          ← Back
         </button>
       </div>
 
@@ -102,21 +102,25 @@ export default function OnboardingFlow() {
         key={step}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl w-full bg-soft-white p-10 rounded-[32px] shadow-2xl border border-border-glass"
+        className="max-w-2xl w-full pixel-panel p-10 mt-4 relative z-10"
       >
         {step === 0 ? (
           <>
-            <h2 className="text-4xl font-medium tracking-tight mb-2 text-center text-green-dark">How old are you?</h2>
-            <p className="text-text-muted text-center mb-10">This helps us adapt the challenges for you.</p>
+            <h2 className="text-4xl font-medium tracking-tight mb-2 text-center text-green-dark flex items-center justify-center gap-3">
+              <PixelIcon name="clover" size={28} />
+              How old are you?
+              <PixelIcon name="clover" size={28} />
+            </h2>
+            <p className="text-text-muted text-center mb-10 text-sm font-bold tracking-widest uppercase">This helps us adapt the challenges for you.</p>
             <div className="flex flex-col space-y-4 mb-8">
               {AGE_GROUPS.map(ag => (
                 <button
                   key={ag.id}
                   onClick={() => setLocalAgeGroup(ag.id)}
-                  className={`p-5 rounded-2xl text-lg font-medium transition-all ${
+                  className={`py-4 px-6 border-2 transition-all font-medium text-lg ${
                     localAgeGroup === ag.id 
-                      ? 'bg-green-primary text-ivory scale-105 shadow-xl' 
-                      : 'bg-ivory border border-border-glass text-green-dark hover:bg-green-primary/5 hover:border-green-primary/30'
+                      ? 'border-green-deepest bg-green-primary text-ivory shadow-[3px_3px_0_#041C14] translate-y-[-2px]' 
+                      : 'border-green-deepest bg-ivory text-green-dark hover:bg-green-primary/5 shadow-[3px_3px_0_#041C14]'
                   }`}
                 >
                   {ag.label}
@@ -126,8 +130,12 @@ export default function OnboardingFlow() {
           </>
         ) : step === 1 ? (
           <>
-            <h2 className="text-4xl font-medium tracking-tight mb-2 text-center text-green-dark">What are you curious about?</h2>
-            <p className="text-text-muted text-center mb-10">Select up to 3 areas you'd like to explore.</p>
+            <h2 className="text-4xl font-medium tracking-tight mb-2 text-center text-green-dark flex items-center justify-center gap-3">
+              <PixelIcon name="clover" size={28} />
+              What are you curious about?
+              <PixelIcon name="clover" size={28} />
+            </h2>
+            <p className="text-text-muted text-center mb-10 text-sm font-bold tracking-widest uppercase">Select up to 3 areas you'd like to explore.</p>
             
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
               {INTEREST_CATEGORIES.map(cat => {
@@ -136,14 +144,14 @@ export default function OnboardingFlow() {
                   <button
                     key={cat.id}
                     onClick={() => toggleInterest(cat.id)}
-                    className={`p-5 rounded-2xl flex flex-col items-center justify-center transition-all ${
+                    className={`p-4 border-2 flex flex-col items-center justify-center transition-all ${
                       isSelected 
-                        ? 'bg-green-primary text-ivory scale-105 shadow-xl' 
-                        : 'bg-ivory border border-border-glass text-green-dark hover:bg-green-primary/5 hover:border-green-primary/30'
+                        ? 'border-green-deepest bg-green-primary text-ivory shadow-[3px_3px_0_#041C14] translate-y-[-2px]' 
+                        : 'border-green-deepest bg-ivory text-green-dark hover:bg-green-primary/5 shadow-[3px_3px_0_#041C14]'
                     }`}
                   >
-                    <span className="pixel-game-icon" style={{ width: 54, height: 54, marginBottom: 10 }}><PixelIcon name={cat.icon} size={34} /></span>
-                    <span className="text-sm font-medium text-center">{cat.label}</span>
+                    <span className="pixel-game-icon" style={{ width: 44, height: 44, marginBottom: 8, background: isSelected ? 'transparent' : '' }}><PixelIcon name={cat.icon} size={28} /></span>
+                    <span className="text-xs font-medium text-center">{cat.label}</span>
                   </button>
                 )
               })}
@@ -151,8 +159,12 @@ export default function OnboardingFlow() {
           </>
         ) : (
           <>
-            <h2 className="text-4xl font-medium tracking-tight mb-2 text-center text-green-dark">What matters to you?</h2>
-            <p className="text-text-muted text-center mb-10">Pick up to 3 things you value most in a future career.</p>
+            <h2 className="text-4xl font-medium tracking-tight mb-2 text-center text-green-dark flex items-center justify-center gap-3">
+              <PixelIcon name="clover" size={28} />
+              What matters to you?
+              <PixelIcon name="clover" size={28} />
+            </h2>
+            <p className="text-text-muted text-center mb-10 text-sm font-bold tracking-widest uppercase">Pick up to 3 things you value most in a future career.</p>
             
             <div className="flex flex-wrap justify-center gap-3 mb-8">
               {CAREER_VALUES.map(val => {
@@ -161,10 +173,10 @@ export default function OnboardingFlow() {
                   <button
                     key={val}
                     onClick={() => toggleValue(val)}
-                    className={`px-5 py-3 rounded-full font-medium transition-all ${
+                    className={`px-4 py-2 border-2 transition-all font-medium text-sm ${
                       isSelected 
-                        ? 'bg-sage text-ivory shadow-md' 
-                        : 'bg-ivory border border-border-glass text-green-dark hover:bg-green-primary/5'
+                        ? 'border-green-deepest bg-sage text-ivory shadow-[2px_2px_0_#041C14] translate-y-[-1px]' 
+                        : 'border-green-deepest bg-ivory text-green-dark hover:bg-green-primary/5 shadow-[2px_2px_0_#041C14]'
                     }`}
                   >
                     {val}
@@ -175,16 +187,17 @@ export default function OnboardingFlow() {
           </>
         )}
 
-        <div className="flex justify-between items-center mt-12 pt-6 border-t border-green-primary/10">
-          <div className="text-text-muted text-sm font-medium uppercase tracking-widest">Step {step + 1} of 3</div>
+        <div className="flex justify-between items-center mt-12 pt-6 border-t-2 border-border-glass">
+          <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Step {step + 1} of 3</div>
           <button 
             onClick={handleNext}
-            className="bg-green-primary text-ivory px-8 py-3 rounded-full font-medium hover:bg-green-dark transition-colors shadow-md"
+            className="pixel-button px-8 py-3"
           >
-            {step < 2 ? 'Next' : 'Start Exploring'}
+            {step < 2 ? 'Next →' : 'Start Exploring →'}
           </button>
         </div>
       </motion.div>
+      <div className="forest-floor" aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />
     </div>
   )
 }

@@ -109,21 +109,25 @@ export default function InstinctSwipe() {
   const progress = ((current) / CARDS.length) * 100
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-green-deepest text-ivory pt-24 px-6 pb-6 relative overflow-hidden">
       <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
-          ← Back to Home
+        <button onClick={() => navigate('/')} className="pixel-button ghost" style={{ fontSize: '13px', color: '#F5F1E3', borderColor: '#3D6E5A' }}>
+          ← Back
         </button>
       </div>
 
       <div className="w-full max-w-md mb-8 mt-4">
-        <h2 className="text-3xl font-medium tracking-tight mb-2 text-center">Instinct Swipe</h2>
+        <h2 className="text-3xl font-medium tracking-tight mb-2 flex items-center justify-center gap-3">
+          <PixelIcon name="clover" size={24} />
+          Instinct Swipe
+          <PixelIcon name="clover" size={24} />
+        </h2>
         <p className="text-text-muted text-center mb-6">Swipe right to like, left to dislike. Trust your gut — there's no right answer.</p>
         
         {/* Progress Bar */}
-        <div className="h-1.5 bg-green-primary/10 overflow-hidden progress-pixel">
+        <div className="h-1.5 bg-[#176044] overflow-hidden progress-pixel">
           <div 
-            className="h-full bg-green-primary transition-all duration-300"
+            className="h-full bg-ivory transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
