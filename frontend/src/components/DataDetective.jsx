@@ -4,6 +4,7 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import PixelIcon from './PixelIcon'
+import BackButton from './BackButton'
 
 export default function DataDetective() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
@@ -136,23 +137,19 @@ export default function DataDetective() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
-      <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
-          ← Back to Home
-        </button>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
+      <BackButton />
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-2xl w-full pixel-panel p-8 mt-4"
+        className="max-w-2xl w-full pixel-panel p-4 sm:p-8 mt-4"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-medium tracking-tight flex items-center gap-3">
-            <PixelIcon name="clover" size={24} />
+          <h2 className="text-2xl sm:text-3xl font-medium tracking-tight flex items-center gap-2 sm:gap-3">
+            <PixelIcon name="clover" size={20} />
             Data Detective
-            <PixelIcon name="clover" size={24} />
+            <PixelIcon name="clover" size={20} />
           </h2>
           <span className="text-green-dark font-mono font-medium px-3 py-1 bg-ivory border-2 border-green-deepest shadow-[3px_3px_0_#041C14]">⏱ {timeElapsed}s</span>
         </div>

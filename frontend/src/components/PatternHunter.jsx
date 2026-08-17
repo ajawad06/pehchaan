@@ -4,6 +4,7 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import PixelIcon from './PixelIcon'
+import BackButton from './BackButton'
 
 const QUESTIONS = [
   { 
@@ -177,21 +178,17 @@ export default function PatternHunter() {
   const q = QUESTIONS[current]
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
-      <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
-          ← Back to Home
-        </button>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
+      <BackButton />
 
       <motion.div 
         key={current}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full pixel-panel p-8 mt-4"
+        className="max-w-xl w-full pixel-panel p-4 sm:p-8 mt-4"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-medium tracking-tight flex items-center gap-3">
+          <h2 className="text-2xl sm:text-3xl font-medium tracking-tight flex items-center gap-3">
             <PixelIcon name="clover" size={24} />
             Pattern Hunter
           </h2>
@@ -201,11 +198,11 @@ export default function PatternHunter() {
           </div>
         </div>
         
-        <div className="w-full bg-ivory border-2 border-border-glass p-6 mb-8 text-center text-xl font-medium leading-relaxed">
+        <div className="w-full bg-ivory border-2 border-border-glass p-4 sm:p-6 mb-6 text-center text-lg sm:text-xl font-medium leading-relaxed">
           {q.text}
         </div>
         
-        <div className="w-full grid grid-cols-4 gap-3 mb-8">
+        <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {q.options.map(opt => (
             <button 
               key={opt}

@@ -3,6 +3,7 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress, saveTraitVector } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import PixelIcon from './PixelIcon'
+import BackButton from './BackButton'
 
 const SCENARIOS = [
   { 
@@ -86,14 +87,10 @@ export default function DecisionLab() {
   const s = SCENARIOS[current]
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
-      <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
-          ← Back to Home
-        </button>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
+      <BackButton />
 
-      <div className="flex flex-col items-center justify-center p-10 pixel-panel max-w-2xl w-full mx-auto mt-4">
+      <div className="flex flex-col items-center justify-center p-4 sm:p-10 pixel-panel max-w-2xl w-full mx-auto mt-4">
         <div className="flex justify-between items-center w-full mb-6">
           <h2 className="text-3xl font-medium tracking-tight flex items-center gap-3">
             <PixelIcon name="clover" size={24} />

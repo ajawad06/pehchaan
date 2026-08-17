@@ -4,6 +4,7 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import PixelIcon from './PixelIcon'
+import BackButton from './BackButton'
 
 const SEQUENCES = [
   ['7', 'K', '3'],
@@ -99,12 +100,8 @@ export default function MemoryGame() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
-      <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="pixel-button ghost" style={{ fontSize: '13px' }}>
-          ← Back
-        </button>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
+      <BackButton />
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}

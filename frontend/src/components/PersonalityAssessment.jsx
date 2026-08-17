@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
+import PixelIcon from './PixelIcon'
+import BackButton from './BackButton'
 
 const QUESTIONS = [
   { trait: 'O', text: "I enjoy exploring ideas even when I don't know where they will lead." },
@@ -54,20 +56,19 @@ export default function PersonalityAssessment() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
-      <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
-          ← Back to Home
-        </button>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
+      <BackButton />
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full bg-soft-white p-8 rounded-[32px] shadow-2xl border border-border-glass"
+        className="max-w-xl w-full pixel-panel p-4 sm:p-8 mt-4"
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-medium tracking-tight">Personality Profile</h2>
+          <h2 className="text-2xl sm:text-3xl font-medium tracking-tight flex items-center gap-3">
+            <PixelIcon name="clover" size={24} />
+            Personality Profile
+          </h2>
           <span className="text-text-muted text-sm uppercase tracking-widest font-bold">Q {current + 1}/{QUESTIONS.length}</span>
         </div>
         

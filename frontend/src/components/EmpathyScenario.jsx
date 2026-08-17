@@ -3,6 +3,7 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress } from '../services/db'
 import PixelIcon from './PixelIcon'
 import { useNavigate } from 'react-router-dom'
+import BackButton from './BackButton'
 
 const SCENARIOS = [
   {
@@ -105,17 +106,10 @@ export default function EmpathyScenario() {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
-      <div className="absolute top-6 left-6 z-20">
-        <button
-          onClick={() => navigate('/')}
-          className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2"
-        >
-          ← Back to Home
-        </button>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
+      <BackButton />
 
-      <div className="flex flex-col items-center p-10 bg-soft-white rounded-[32px] shadow-2xl border border-border-glass max-w-2xl w-full mx-auto">
+      <div className="flex flex-col items-center p-4 sm:p-10 pixel-panel max-w-2xl w-full mx-auto mt-4">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
           <PixelIcon name="dna" size={42} />

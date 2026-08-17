@@ -3,6 +3,8 @@ import { motion } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
+import PixelIcon from './PixelIcon'
+import BackButton from './BackButton'
 
 const QUESTIONS = [
   // Phase 1 (Base Rules)
@@ -98,17 +100,13 @@ export default function LearningAgility() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
-      <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
-          ← Back to Home
-        </button>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
+      <BackButton />
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full bg-soft-white p-8 rounded-[32px] shadow-2xl border border-border-glass text-center"
+        className="max-w-xl w-full pixel-panel p-4 sm:p-8 mt-4 text-center"
       >
         <h2 className="text-3xl font-medium tracking-tight mb-6">Learning Agility</h2>
         

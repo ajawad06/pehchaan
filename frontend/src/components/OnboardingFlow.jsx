@@ -4,6 +4,7 @@ import { useSession } from '../store/SessionContext'
 import { useNavigate } from 'react-router-dom'
 import { recordResponse } from '../services/db'
 import PixelIcon from './PixelIcon'
+import BackButton from './BackButton'
 
 const INTEREST_CATEGORIES = [
   { id: 'arts', icon: 'palette', label: 'Arts & Creative' },
@@ -91,18 +92,14 @@ export default function OnboardingFlow() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
-      <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="pixel-button ghost" style={{ fontSize: '13px' }}>
-          ← Back
-        </button>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
+      <BackButton />
 
       <motion.div 
         key={step}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl w-full pixel-panel p-10 mt-4 relative z-10"
+        className="max-w-2xl w-full pixel-panel p-4 sm:p-10 mt-4 relative z-10"
       >
         {step === 0 ? (
           <>

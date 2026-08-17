@@ -3,6 +3,7 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress, saveTraitVector } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import PixelIcon from './PixelIcon'
+import BackButton from './BackButton'
 
 export default function CareerSimulation() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
@@ -85,29 +86,25 @@ export default function CareerSimulation() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative">
-      <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="pixel-button ghost" style={{ fontSize: '13px' }}>
-          ← Back
-        </button>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
+      <BackButton />
 
-      <div className="flex flex-col items-center justify-center p-10 pixel-panel max-w-4xl w-full mx-auto mt-4 relative">
-        <div className="absolute top-8 right-8">
-          <PixelIcon name="spark" size={32} />
+      <div className="flex flex-col items-center justify-center p-4 sm:p-10 pixel-panel max-w-4xl w-full mx-auto mt-4 relative">
+        <div className="absolute top-4 right-4 sm:top-8 sm:right-8">
+          <PixelIcon name="spark" size={24} />
         </div>
-        <h2 className="text-3xl font-medium tracking-tight mb-6 capitalize flex items-center gap-3">
-          <PixelIcon name="clover" size={24} />
+        <h2 className="text-2xl sm:text-3xl font-medium tracking-tight mb-4 sm:mb-6 capitalize flex items-center gap-2 sm:gap-3">
+          <PixelIcon name="clover" size={20} />
           {topInterest} Simulation
-          <PixelIcon name="clover" size={24} />
+          <PixelIcon name="clover" size={20} />
         </h2>
-        <p className="text-lg mb-8 text-center text-green-dark leading-relaxed font-medium">
+        <p className="text-sm sm:text-lg mb-6 sm:mb-8 text-center text-green-dark leading-relaxed font-medium">
           {simulationPrompt}
         </p>
         
-        <div className="w-full flex gap-4">
+        <div className="w-full flex flex-col sm:flex-row gap-4 mb-6">
           <textarea 
-            className="flex-1 h-64 p-6 bg-ivory border-2 border-green-deepest focus:outline-none shadow-[4px_4px_0_#041C14] mb-8 text-green-dark resize-none font-mono text-lg"
+            className="flex-1 h-48 sm:h-64 p-4 sm:p-6 bg-ivory border-2 border-green-deepest focus:outline-none shadow-[4px_4px_0_#041C14] text-green-dark resize-none font-mono text-base sm:text-lg"
             style={{ 
               backgroundImage: 'linear-gradient(#B6C8BE 1px, transparent 1px), linear-gradient(90deg, #B6C8BE 1px, transparent 1px)', 
               backgroundSize: '24px 24px',
@@ -119,11 +116,11 @@ export default function CareerSimulation() {
           />
           
           {(topInterest === 'architecture' || topInterest === 'arts') && (
-            <div className="w-20 shrink-0 bg-ivory border-2 border-green-deepest shadow-[4px_4px_0_#041C14] p-2 flex flex-col items-center gap-4 h-64">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-green-dark mb-2">Tools</div>
-              <button className="p-2 border-2 border-green-deepest bg-[#FAF8EF] hover:bg-green-primary/10"><PixelIcon name="spark" size={20} /></button>
-              <button className="p-2 border-2 border-green-deepest bg-green-primary text-ivory"><PixelIcon name="hammer" size={20} /></button>
-              <button className="p-2 border-2 border-green-deepest bg-[#FAF8EF] hover:bg-green-primary/10"><PixelIcon name="palette" size={20} /></button>
+            <div className="w-full sm:w-20 shrink-0 bg-ivory border-2 border-green-deepest shadow-[4px_4px_0_#041C14] p-2 flex flex-row sm:flex-col items-center justify-around sm:justify-start gap-2 sm:gap-4 h-auto sm:h-64">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-green-dark">Tools</div>
+              <button type="button" className="p-2 border-2 border-green-deepest bg-[#FAF8EF] hover:bg-green-primary/10"><PixelIcon name="spark" size={20} /></button>
+              <button type="button" className="p-2 border-2 border-green-deepest bg-green-primary text-ivory"><PixelIcon name="hammer" size={20} /></button>
+              <button type="button" className="p-2 border-2 border-green-deepest bg-[#FAF8EF] hover:bg-green-primary/10"><PixelIcon name="palette" size={20} /></button>
             </div>
           )}
         </div>

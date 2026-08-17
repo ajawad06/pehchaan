@@ -4,6 +4,7 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import PixelIcon from './PixelIcon'
+import BackButton from './BackButton'
 
 // 18 cards, 3 per RIASEC letter, each with weights that accumulate
 const CARDS = [
@@ -110,11 +111,7 @@ export default function InstinctSwipe() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-green-deepest text-ivory pt-24 px-6 pb-6 relative overflow-hidden">
-      <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => navigate('/')} className="pixel-button ghost" style={{ fontSize: '13px', color: '#F5F1E3', borderColor: '#3D6E5A' }}>
-          ← Back
-        </button>
-      </div>
+      <BackButton />
 
       <div className="w-full max-w-md mb-8 mt-4">
         <h2 className="text-3xl font-medium tracking-tight mb-2 flex items-center justify-center gap-3">

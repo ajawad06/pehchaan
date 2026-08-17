@@ -362,18 +362,20 @@ thead tr { background: var(--green) !important; color: var(--ivory) !important; 
 th, td { border-color: #B6C8BE !important; }
 
 /* Game-choice buttons: dark border + cream body + physical press */
-.min-h-screen.bg-ivory button {
+.min-h-screen button:not(.ghost):not(.pixel-button) {
   border-width: 2px;
   border-color: var(--deep);
   box-shadow: 3px 3px 0 var(--shadow);
   transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease;
 }
-.min-h-screen.bg-ivory button:hover:not(:disabled) { transform: translateY(-1px); }
-.min-h-screen.bg-ivory button:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+.min-h-screen button:hover:not(:disabled):not(.ghost) { transform: translateY(-1px); }
+.min-h-screen button:active:not(:disabled):not(.ghost) { transform: translateY(3px); box-shadow: none; }
 
 /* Small screen game panels */
 @media (max-width: 560px) {
-  .min-h-screen.bg-ivory { padding-bottom: 118px !important; }
+  .min-h-screen.bg-ivory,
+  .min-h-screen.bg-green-deepest,
+  .min-h-screen.bg-green-dark { padding-bottom: 118px !important; }
   .min-h-screen.bg-ivory::after { height: 86px; background-size: auto 86px; }
 }
 
@@ -390,43 +392,50 @@ button, a, input, textarea, select { max-width: 100%; }
 /* All game/onboarding pages: let content determine height instead of
    forcing a vertically centered viewport that can collide on phones. */
 @media (max-width: 700px) {
-  .min-h-screen.bg-ivory {
+  .min-h-screen.bg-ivory,
+  .min-h-screen.bg-green-deepest,
+  .min-h-screen.bg-green-dark,
+  .min-h-screen {
     min-height: 100svh !important;
     height: auto !important;
-    padding: 112px 14px 108px !important;
+    padding: 80px 14px 90px !important;
     justify-content: flex-start !important;
     align-items: center !important;
     overflow-x: clip !important;
     overflow-y: auto !important;
   }
 
-  .min-h-screen.bg-ivory > .absolute.top-6.left-6 {
+  .min-h-screen > .absolute.top-6.left-6,
+  .min-h-screen > .absolute.top-4.left-4 {
     top: 12px !important;
     left: 12px !important;
-    right: 12px !important;
+    right: auto !important;
     width: auto !important;
-    z-index: 20 !important;
+    pointer-events: none !important;
+    z-index: 50 !important;
   }
 
-  .min-h-screen.bg-ivory > .absolute.top-6.left-6 button {
-    min-height: 42px !important;
-    padding: 8px 11px !important;
+  .min-h-screen > .absolute.top-6.left-6 button,
+  .min-h-screen > .absolute.top-4.left-4 button {
+    pointer-events: auto !important;
+    min-height: 38px !important;
+    padding: 6px 12px !important;
     font-size: 13px !important;
     white-space: nowrap;
   }
 
-  .min-h-screen.bg-ivory > :not(.absolute) {
+  .min-h-screen > :not(.absolute) {
     min-width: 0 !important;
     max-width: 100% !important;
   }
 
-  .min-h-screen.bg-ivory .max-w-xl,
-  .min-h-screen.bg-ivory .max-w-2xl,
-  .min-h-screen.bg-ivory .max-w-3xl,
-  .min-h-screen.bg-ivory .max-w-4xl,
-  .min-h-screen.bg-ivory .max-w-5xl,
-  .min-h-screen.bg-ivory .max-w-6xl,
-  .min-h-screen.bg-ivory .max-w-7xl {
+  .min-h-screen .max-w-xl,
+  .min-h-screen .max-w-2xl,
+  .min-h-screen .max-w-3xl,
+  .min-h-screen .max-w-4xl,
+  .min-h-screen .max-w-5xl,
+  .min-h-screen .max-w-6xl,
+  .min-h-screen .max-w-7xl {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
