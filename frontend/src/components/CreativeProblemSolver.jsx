@@ -141,7 +141,8 @@ export default function CreativeProblemSolver() {
         <button
           onClick={handleSubmit}
           disabled={isSubmitting || text.length < 30}
-          className="w-full py-4 bg-green-primary text-ivory font-medium rounded-full hover:bg-green-dark disabled:opacity-50 transition-colors shadow-md"
+          className="w-full pixel-button"
+          style={{ color: '#041C14' }}
         >
           {isSubmitting ? 'Saving response...' : 'Submit Response'}
         </button>

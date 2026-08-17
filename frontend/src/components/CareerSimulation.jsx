@@ -133,6 +133,7 @@ export default function CareerSimulation() {
             onClick={handleSubmit}
             disabled={isSubmitting || text.length < 10}
             className="pixel-button px-10 py-3 disabled:opacity-50"
+            style={{ color: '#041C14' }}
           >
             {isSubmitting ? 'Finalize...' : 'Submit Design →'}
           </button>

@@ -155,7 +155,7 @@ export default function LearningAgility() {
                 className="flex-1 bg-ivory border border-border-glass rounded-xl px-5 py-4 text-green-dark text-2xl font-mono text-center focus:outline-none focus:border-green-primary shadow-sm"
                 autoFocus
               />
-              <button type="submit" className="bg-green-primary text-ivory font-medium px-8 py-4 rounded-xl hover:bg-green-dark transition-colors shadow-md">
+              <button type="submit" className="pixel-button" style={{ color: '#041C14' }}>
                 Enter
               </button>
             </form>

@@ -154,7 +154,8 @@ export default function EmpathyScenario() {
         <button
           onClick={handleSubmit}
           disabled={isSubmitting || text.length < 60}
-          className="w-full py-4 bg-green-primary text-ivory font-medium rounded-full hover:bg-green-dark disabled:opacity-50 transition-colors shadow-md"
+          className="w-full pixel-button"
+          style={{ color: '#041C14' }}
         >
           {isSubmitting ? 'Analyzing your response...' : 'Submit Response'}
         </button>

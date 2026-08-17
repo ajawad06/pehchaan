@@ -5,6 +5,7 @@ import { saveRecommendations } from '../services/db'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { detectTier2Cluster } from './Tier2Disambiguation'
+import BackButton from './BackButton'
 
 // All skills used anywhere in the taxonomy — used to build the abilities object
 // from traits without a hardcoded shortlist.
@@ -273,11 +274,7 @@ export default function ResultsScreen() {
 
   return (
     <div className="flex flex-col items-center p-8 pt-20 min-h-screen bg-ivory text-green-dark relative overflow-y-auto">
-      <div className="absolute top-6 left-6 z-20">
-        <button onClick={() => window.location.href='/'} className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2">
-          ← Back to Home
-        </button>
-      </div>
+      <BackButton />
 
       <h1 className="text-5xl font-medium tracking-tight mb-2 text-center">
         Your Pehchaan

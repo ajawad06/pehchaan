@@ -99,7 +99,7 @@ export default function OnboardingFlow() {
         key={step}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl w-full pixel-panel p-4 sm:p-10 mt-4 relative z-10"
+        className="max-w-2xl w-full pixel-panel p-4 sm:p-10 mt-4 mb-24 relative z-10"
       >
         {step === 0 ? (
           <>
@@ -188,13 +188,14 @@ export default function OnboardingFlow() {
           <div className="text-text-muted text-xs font-bold uppercase tracking-widest">Step {step + 1} of 3</div>
           <button 
             onClick={handleNext}
-            className="pixel-button px-8 py-3"
+            className="pixel-button px-8 py-3 text-green-dark"
+            style={{ color: '#041C14' }}
           >
             {step < 2 ? 'Next →' : 'Start Exploring →'}
           </button>
         </div>
       </motion.div>
-      <div className="forest-floor" aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />
+      <div className="forest-floor pointer-events-none" aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 0 }} />
     </div>
   )
 }

@@ -111,7 +111,7 @@ export default function InstinctSwipe() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-green-deepest text-ivory pt-24 px-6 pb-6 relative overflow-hidden">
-      <BackButton />
+      <BackButton light={true} />
 
       <div className="w-full max-w-md mb-8 mt-4">
         <h2 className="text-3xl font-medium tracking-tight mb-2 flex items-center justify-center gap-3">

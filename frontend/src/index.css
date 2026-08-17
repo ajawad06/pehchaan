@@ -118,7 +118,7 @@ button {
   border: 3px solid var(--deep);
   box-shadow: 0 4px 0 var(--deep);
   background: var(--bright);
-  color: #fff;
+  color: var(--deep);
   font-family: 'Pixelify Sans', monospace;
   font-weight: 700;
   text-transform: uppercase;
@@ -130,7 +130,7 @@ button {
 .pixel-button.light { background: var(--ivory); color: var(--deep); }
 .pixel-button.gold { background: var(--gold); color: var(--deep); }
 .pixel-button.pink { background: var(--pink); color: var(--deep); }
-.pixel-button.ghost { background: transparent; color: var(--ivory); border-color: #3D6E5A; box-shadow: 0 4px 0 var(--shadow); }
+.pixel-button.ghost { background: transparent; color: var(--deep); border-color: #3D6E5A; box-shadow: 0 4px 0 var(--shadow); }
 
 .pixel-card {
   border: 3px solid var(--mid);

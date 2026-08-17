@@ -140,7 +140,7 @@ export default function NumericalReasoning() {
               className="flex-1 bg-ivory border-2 border-border-glass px-5 py-4 text-green-dark text-xl font-mono text-center focus:outline-none focus:border-green-primary"
               autoFocus
             />
-            <button type="submit" className="pixel-button">
+            <button type="submit" className="pixel-button" style={{ color: '#041C14' }}>
               Enter
             </button>
           </form>
