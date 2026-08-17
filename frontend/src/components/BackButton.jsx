@@ -1,4 +1,4 @@
-import { useNavigate } from 'react'
+import { useNavigate } from 'react-router-dom'
 import PixelIcon from './PixelIcon'
 
 export default function BackButton({ to = '/', label = 'Back to Home', light = false }) {
