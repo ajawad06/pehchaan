@@ -1,13 +1,12 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress } from '../services/db'
-import PixelIcon from './PixelIcon'
 import { useNavigate } from 'react-router-dom'
-import BackButton from './BackButton'
+import { ArrowLeft, Palette } from 'lucide-react'
 
 const PROMPT = {
   title: 'Creative Composition',
-  icon: 'palette',
   instruction: 'Look at this scene in your mind: a deserted coastal town at dusk, the last fishing boats returning, an old lighthouse flickering. In 4–6 sentences, describe what you see, hear, and feel — and what story this place is silently telling.',
   placeholder: 'Begin your description here...',
   minLength: 60,
@@ -74,21 +73,31 @@ export default function CreativeComposition() {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
-      <BackButton />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-4 sm:p-6 relative">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-semibold flex items-center gap-2 bg-white/60 rounded-pill px-3 py-1.5 sm:px-4 sm:py-2 shadow-cushion-sm text-sm sm:text-base hover:shadow-cushion transition-shadow">
+          <ArrowLeft size={16} className="shrink-0" /> Back
+        </button>
+      </div>
 
-      <div className="flex flex-col items-center p-4 sm:p-10 pixel-panel max-w-2xl w-full mx-auto mt-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="max-w-2xl w-full bg-soft-white p-5 sm:p-8 rounded-card-lg shadow-cushion border border-border-glass mt-14 sm:mt-0"
+      >
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
-          <PixelIcon name={PROMPT.icon} size={42} />
-          <h2 className="text-3xl font-medium tracking-tight">{PROMPT.title}</h2>
+          <span className="grid place-items-center w-11 h-11 rounded-card bg-green-primary/10 text-green-primary shrink-0">
+            <Palette size={24} />
+          </span>
+          <h2 className="font-playful text-2xl sm:text-3xl font-extrabold tracking-tight">{PROMPT.title}</h2>
         </div>
         <p className="text-xs uppercase tracking-widest text-text-muted mb-8 font-semibold">
           Creativity · Aesthetic Judgment · Verbal Expression
         </p>
 
         {/* Prompt Card */}
-        <div className="w-full bg-sage/10 border border-sage/25 rounded-2xl p-6 mb-8">
+        <div className="w-full bg-ivory border border-green-primary/10 rounded-card p-6 mb-8">
           <p className="text-green-dark leading-relaxed text-center text-base">
             {PROMPT.instruction}
           </p>
@@ -96,7 +105,7 @@ export default function CreativeComposition() {
 
         {/* Text Area */}
         <textarea
-          className="w-full h-44 p-5 bg-ivory border border-border-glass rounded-2xl focus:outline-none focus:border-green-primary mb-3 text-green-dark shadow-sm resize-none leading-relaxed"
+          className="w-full h-44 p-5 bg-ivory border border-border-glass rounded-card focus:outline-none focus:border-green-primary mb-3 text-green-dark shadow-cushion-sm resize-none leading-relaxed"
           placeholder={PROMPT.placeholder}
           value={text}
           onChange={e => setText(e.target.value)}
@@ -109,16 +118,16 @@ export default function CreativeComposition() {
           </span>
         </div>
 
-        <button
+        <motion.button
           onClick={handleSubmit}
           disabled={isSubmitting || text.length < PROMPT.minLength}
-          className="w-full pixel-button"
-          style={{ color: '#041C14' }}
+          whileTap={text.length >= PROMPT.minLength ? { scale: [1, 0.9, 1.03, 1] } : {}}
+          transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+          className="w-full bg-green-primary text-ivory font-bold px-8 py-4 rounded-pill hover:bg-green-dark transition-colors shadow-cushion-sm disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isSubmitting ? 'Analyzing your composition...' : 'Submit Composition'}
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
     </div>
   )
 }
-

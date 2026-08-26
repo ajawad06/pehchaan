@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
+import { ArrowLeft, Timer, Lightbulb } from 'lucide-react'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
-import PixelIcon from './PixelIcon'
-import BackButton from './BackButton'
 
 const TARGETS = 10
 const DISTRACTORS = 15
@@ -12,6 +11,7 @@ const DISTRACTORS = 15
 export default function AttentionGame() {
   const { sessionId, updateTraits, advanceFlow } = useSession()
   const navigate = useNavigate()
+  const reduceMotion = useReducedMotion()
   
   const [phase, setPhase] = useState('ready')
   const [shapes, setShapes] = useState([])
@@ -78,38 +78,32 @@ export default function AttentionGame() {
       completed: true
     }
 
-    // Score from actual performance — unconditional
-    // accuracy 0-1, mistakes penalise, time bonus for finishing fast
-    const timeBonus = timeLeft > 5 ? 0.1 : 0
-    const speedScore = Math.round(Math.max(10, Math.min(100, (accuracy + timeBonus) * 100)))
-    const attentionScore = Math.round(Math.max(10, Math.min(100, accuracy * 100)))
-
-    // Always write before the async call so it can't be skipped
-    updateTraits({
-      processing_speed: speedScore,
-      attention_to_detail: attentionScore,
-      persistence: attentionScore,   // sustained attention = persistence proxy
-    })
-
     try {
       const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
       const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
-      await fetch(`${API_URL}/submit_activity`, {
+      const response = await fetch(`${API_URL}/submit_activity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: sessionId || 'anonymous',
           activity_id: 'attention_game',
           difficulty_level: 2,
-          telemetry
+          telemetry: telemetry
         })
       })
+      
+      const data = await response.json()
+      
+      if (data.estimated_skill_delta) {
+        const newSpeed = Math.max(0, Math.min(100, 50 + (data.estimated_skill_delta * 10)))
+        updateTraits({ processing_speed: newSpeed })
+      }
     } catch (error) {
       console.error("Failed to send telemetry:", error)
     }
 
     if (sessionId) {
-      await recordResponse(sessionId, 'attention_game', telemetry).catch(e => console.error("Firestore error:", e))
+      await recordResponse(sessionId, 'attention_game', telemetry)
     }
     
     setTimeout(() => {
@@ -118,42 +112,50 @@ export default function AttentionGame() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
-      <BackButton />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-4 sm:p-6 relative">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-semibold flex items-center gap-2 bg-white/60 rounded-pill px-3 py-1.5 sm:px-4 sm:py-2 shadow-cushion-sm text-sm sm:text-base hover:shadow-cushion transition-shadow">
+          <ArrowLeft size={16} className="shrink-0" /> Back
+        </button>
+      </div>
 
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-3xl w-full pixel-panel p-4 sm:p-8 text-center mt-4"
+        initial={reduceMotion ? {} : { opacity: 0, y: 16 }}
+        animate={reduceMotion ? {} : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="max-w-3xl w-full bg-soft-white p-5 sm:p-8 rounded-card-lg shadow-cushion border border-border-glass text-center"
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-medium tracking-tight">Processing Speed</h2>
+        <div className="flex flex-wrap gap-2 justify-between items-center mb-6">
+          <h2 className="font-playful text-xl sm:text-3xl font-extrabold tracking-tight">Processing Speed</h2>
           {phase === 'playing' && (
-            <span className={`font-mono font-medium px-3 py-1 rounded-full ${timeLeft <= 5 ? 'bg-red-500/10 text-red-600 animate-pulse' : 'bg-green-primary/5 text-green-secondary'}`}>
-              ⏱ {timeLeft}s
+            <span className={`font-mono font-bold px-3 py-1.5 sm:px-4 rounded-pill flex items-center gap-1.5 text-sm sm:text-base ${timeLeft <= 5 ? 'bg-red-500/10 text-red-600 animate-pulse' : 'bg-green-primary/5 text-green-secondary'}`}>
+              <Timer size={16} className="shrink-0" /> {timeLeft}s
             </span>
           )}
         </div>
         
         {phase === 'ready' && (
           <div className="space-y-6 py-10">
-            <p className="text-lg text-text-muted">Tap all the <span className="text-blue-500 font-bold">Blue Circles</span> as fast as you can.</p>
-            <p className="text-lg text-text-muted">Do NOT tap the <span className="text-red-500 font-bold">Red Squares</span>.</p>
-            <button onClick={startLevel} className="bg-green-primary text-ivory px-8 py-4 rounded-full font-medium hover:bg-green-dark transition-colors shadow-md mt-6">
+            <p className="text-lg text-text-muted font-light">Tap all the <span className="text-blue-500 font-bold">Blue Circles</span> as fast as you can.</p>
+            <p className="text-lg text-text-muted font-light">Do NOT tap the <span className="text-red-500 font-bold">Red Squares</span>.</p>
+            <button onClick={startLevel} className={`bg-green-primary text-ivory px-8 py-4 rounded-pill font-bold hover:bg-green-dark transition-colors shadow-cushion mt-6 ${reduceMotion ? '' : 'animate-breathe'}`}>
               Start
             </button>
           </div>
         )}
 
         {phase === 'playing' && (
-          <div className="grid grid-cols-5 gap-4 bg-ivory rounded-2xl p-6 border border-green-primary/10 min-h-[400px]">
+          <div className="grid grid-cols-5 gap-4 bg-ivory rounded-card p-6 border border-green-primary/10 min-h-[400px]">
             {shapes.map((shape) => (
               <div key={shape.id} className="flex items-center justify-center h-16 w-16 mx-auto">
                 {shape.active && (
-                  <button 
+                  <motion.button 
                     onClick={() => handleClick(shape.id, shape.type)}
-                    className={`w-12 h-12 transition-transform active:scale-90 ${
-                      shape.type === 'target' ? 'bg-blue-500 rounded-full' : 'bg-red-500 rounded-lg'
+                    aria-label={shape.type === 'target' ? 'Blue circle target' : 'Red square, do not tap'}
+                    whileTap={reduceMotion ? {} : { scale: [1, 0.85, 1.05, 1] }}
+                    transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                    className={`w-12 h-12 shadow-cushion-sm ${
+                      shape.type === 'target' ? 'bg-blue-500 rounded-full' : 'bg-red-500 rounded-card'
                     }`}
                   />
                 )}
@@ -163,16 +165,18 @@ export default function AttentionGame() {
         )}
 
         {phase === 'result' && (
-          <div className="py-12">
-            <p className="text-2xl font-medium text-green-secondary">Complete!</p>
+          <motion.div
+            initial={reduceMotion ? {} : { opacity: 0, y: 12 }}
+            animate={reduceMotion ? {} : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+            className="py-12"
+          >
+            <p className="font-playful text-2xl font-bold text-green-secondary">Complete!</p>
             <p className="text-text-muted mt-2">Accuracy: {Math.round((score / TARGETS) * 100)}%</p>
             <p className="text-text-muted">Mistakes: {mistakes}</p>
-          </div>
+          </motion.div>
         )}
       </motion.div>
     </div>
   )
 }
-
-
-

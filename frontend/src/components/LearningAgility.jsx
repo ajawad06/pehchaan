@@ -1,26 +1,26 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
-import PixelIcon from './PixelIcon'
-import BackButton from './BackButton'
+import { ArrowLeft } from 'lucide-react'
 
 const QUESTIONS = [
   // Phase 1 (Base Rules)
-  { p: 1, base: 'CAT', ops: ['▲'], text: 'CAT ▲', ans: 'TAC' },
-  { p: 1, base: 'DOG', ops: ['●'], text: 'DOG ●', ans: 'DOGS' },
-  { p: 1, base: 'ART', ops: ['■'], text: 'ART ■', ans: 'RT' },
-  { p: 1, base: 'PEN', ops: ['▲', '●'], text: 'PEN ▲ ●', ans: 'NEPS' }, // Reverse -> NEP -> Add S
-  // Phase 2 (New Rule introduced: ★ = Duplicate it)
-  { p: 2, base: 'BAT', ops: ['★'], text: 'BAT ★', ans: 'BATBAT' },
-  { p: 2, base: 'CAT', ops: ['▲', '★'], text: 'CAT ▲ ★', ans: 'TACTAC' }, // Reverse -> TAC -> Duplicate
-  { p: 2, base: 'ART', ops: ['★', '■'], text: 'ART ★ ■', ans: 'RTART' }, // Duplicate -> ARTART -> Remove first
+  { p: 1, base: 5, ops: ['▲'], text: '5 ▲', ans: 8 },
+  { p: 1, base: 4, ops: ['●'], text: '4 ●', ans: 8 },
+  { p: 1, base: 10, ops: ['■'], text: '10 ■', ans: 6 },
+  { p: 1, base: 3, ops: ['▲', '●'], text: '3 ▲ ●', ans: 12 }, // (3+3)*2
+  // Phase 2 (New Rule introduced: ★ = Square it)
+  { p: 2, base: 3, ops: ['★'], text: '3 ★', ans: 9 },
+  { p: 2, base: 2, ops: ['▲', '★'], text: '2 ▲ ★', ans: 25 }, // (2+3)^2 = 25
+  { p: 2, base: 5, ops: ['★', '■'], text: '5 ★ ■', ans: 21 }, // (5^2)-4 = 21
 ]
 
 export default function LearningAgility() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
+  const reduceMotion = useReducedMotion()
   
   const [current, setCurrent] = useState(0)
   const [phase, setPhase] = useState('intro1') // intro1 -> practice -> intro2 -> test -> result
@@ -35,20 +35,20 @@ export default function LearningAgility() {
     
     setAttempts(a => a + 1)
     
-    // Check correctness but advance either way
-    if (input.trim() === QUESTIONS[current].ans) {
+    if (parseInt(input) === QUESTIONS[current].ans) {
       setScore(s => s + 1)
-    }
-    
-    setInput('')
-    
-    if (current === 3 && phase === 'practice') {
-      setPhase('intro2')
-      setCurrent(c => c + 1)
-    } else if (current + 1 < QUESTIONS.length) {
-      setCurrent(c => c + 1)
+      setInput('')
+      
+      if (current === 3 && phase === 'practice') {
+        setPhase('intro2')
+        setCurrent(c => c + 1)
+      } else if (current + 1 < QUESTIONS.length) {
+        setCurrent(c => c + 1)
+      } else {
+        finishGame()
+      }
     } else {
-      finishGame()
+      setInput('')
     }
   }
 
@@ -65,33 +65,32 @@ export default function LearningAgility() {
       completed: true
     }
 
-    // Score from actual performance — unconditional
-    // Penalise wrong attempts, reward speed and accuracy
-    const agilityScore = Math.round(Math.max(10, Math.min(100,
-      (accuracy * 0.7 + Math.max(0, 1 - timeElapsed / 120) * 0.3) * 100
-    )))
-    // Always write first — can't be gated on API response
-    updateTraits({ learning_agility: agilityScore })
-
     try {
       const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
       const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
-      await fetch(`${API_URL}/submit_activity`, {
+      const response = await fetch(`${API_URL}/submit_activity`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: sessionId || 'anonymous',
           activity_id: 'learning_agility',
           difficulty_level: traits?.age_group?.includes('14') ? 1 : 3,
-          telemetry
+          telemetry: telemetry
         })
       })
+      
+      const data = await response.json()
+      
+      if (data.estimated_skill_delta) {
+        const newScore = Math.max(0, Math.min(100, 50 + (data.estimated_skill_delta * 10)))
+        updateTraits({ learning_agility: newScore })
+      }
     } catch (error) {
       console.error("Failed to send telemetry:", error)
     }
 
     if (sessionId) {
-      await recordResponse(sessionId, 'learning_agility', telemetry).catch(e => console.error("Firestore error:", e))
+      await recordResponse(sessionId, 'learning_agility', telemetry)
     }
     
     setTimeout(() => {
@@ -100,78 +99,133 @@ export default function LearningAgility() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
-      <BackButton />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-4 sm:p-6 relative">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-semibold flex items-center gap-2 bg-white/60 rounded-pill px-3 py-1.5 sm:px-4 sm:py-2 shadow-cushion-sm text-sm sm:text-base hover:shadow-cushion transition-shadow">
+          <ArrowLeft size={16} className="shrink-0" /> Back
+        </button>
+      </div>
 
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full pixel-panel p-4 sm:p-8 mt-4 text-center"
+        initial={reduceMotion ? {} : { opacity: 0, y: 16 }}
+        animate={reduceMotion ? {} : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="max-w-xl w-full bg-soft-white p-5 sm:p-8 rounded-card-lg shadow-cushion border border-border-glass text-center"
       >
-        <h2 className="text-3xl font-medium tracking-tight mb-6">Learning Agility</h2>
+        <h2 className="font-playful text-xl sm:text-3xl font-extrabold tracking-tight mb-6">Learning Agility</h2>
         
+        <AnimatePresence mode="wait">
         {phase === 'intro1' && (
-          <div className="space-y-6">
-            <p className="text-lg text-text-muted">Learn this new system. Read left to right.</p>
-                <div className="bg-ivory border border-border-glass p-6 rounded-xl space-y-4 mb-8 text-left font-mono">
-                  <p><span className="text-blue-500">▲</span> means <strong>Reverse the word</strong></p>
-                  <p><span className="text-red-500">●</span> means <strong>Add 'S' to the end</strong></p>
-                  <p><span className="text-orange-500">■</span> means <strong>Remove the first letter</strong></p>
-                </div>
-            <button onClick={() => setPhase('practice')} className="bg-green-primary text-ivory px-8 py-4 rounded-full font-medium hover:bg-green-dark transition-colors shadow-md w-full">
+          <motion.div
+            key="intro1"
+            initial={reduceMotion ? {} : { opacity: 0, y: 12 }}
+            animate={reduceMotion ? {} : { opacity: 1, y: 0 }}
+            exit={reduceMotion ? {} : { opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="space-y-6"
+          >
+            <p className="text-lg text-text-muted font-light">Learn this new system. Read left to right.</p>
+            <div className="bg-ivory rounded-card p-6 border border-green-primary/10 text-xl font-mono text-left space-y-4 max-w-sm mx-auto">
+              <p><span className="text-blue-500">▲</span> means <b>Add 3</b></p>
+              <p><span className="text-red-500">●</span> means <b>Multiply by 2</b></p>
+              <p><span className="text-orange-500">■</span> means <b>Subtract 4</b></p>
+            </div>
+            <motion.button
+              onClick={() => setPhase('practice')}
+              whileTap={reduceMotion ? {} : { scale: [1, 0.92, 1.03, 1] }}
+              transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
+              className={`bg-green-primary text-ivory px-8 py-4 rounded-pill font-bold hover:bg-green-dark transition-colors shadow-cushion w-full ${reduceMotion ? '' : 'animate-breathe'}`}
+            >
               Start Practice
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         )}
 
         {phase === 'intro2' && (
-          <div className="space-y-6">
-            <p className="text-lg text-text-muted">Great. Now, a new rule is introduced:</p>
-            <div className="bg-ivory border border-border-glass p-6 rounded-xl space-y-4 mb-8 text-left font-mono">
-              <p><span className="text-purple-500">★</span> means <strong>Duplicate the word</strong></p>
+          <motion.div
+            key="intro2"
+            initial={reduceMotion ? {} : { opacity: 0, y: 12 }}
+            animate={reduceMotion ? {} : { opacity: 1, y: 0 }}
+            exit={reduceMotion ? {} : { opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="space-y-6"
+          >
+            <p className="text-lg text-text-muted font-light">Great. Now, a new rule is introduced:</p>
+            <div className="bg-ivory rounded-card p-6 border border-green-primary/10 text-xl font-mono text-left space-y-4 max-w-sm mx-auto">
+              <p><span className="text-purple-500">★</span> means <b>Square the number</b> (multiply by itself)</p>
             </div>
-            <button onClick={() => setPhase('test')} className="pixel-button w-full" style={{ color: '#041C14' }}>
+            <motion.button
+              onClick={() => setPhase('test')}
+              whileTap={reduceMotion ? {} : { scale: [1, 0.92, 1.03, 1] }}
+              transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
+              className={`bg-green-primary text-ivory px-8 py-4 rounded-pill font-bold hover:bg-green-dark transition-colors shadow-cushion w-full ${reduceMotion ? '' : 'animate-breathe'}`}
+            >
               Continue
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         )}
 
         {(phase === 'practice' || phase === 'test') && (
-          <div className="space-y-6">
-            <p className="text-sm text-text-muted uppercase tracking-widest">{phase}</p>
+          <motion.div
+            key={`${phase}-${current}`}
+            initial={reduceMotion ? {} : { opacity: 0, y: 12, scale: 0.97 }}
+            animate={reduceMotion ? {} : { opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? {} : { opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
+            className="space-y-6"
+          >
+            <p className="text-sm text-text-muted uppercase tracking-widest font-bold">{phase}</p>
             
-            <div className="bg-ivory rounded-2xl p-8 border border-green-primary/10">
-              <p className="text-4xl sm:text-5xl font-mono tracking-widest font-bold text-green-dark font-clean">
+            <div className="bg-ivory rounded-card p-5 sm:p-8 border border-green-primary/10">
+              <p className="text-3xl sm:text-5xl font-mono tracking-wide sm:tracking-widest font-bold text-green-dark break-words">
                 {QUESTIONS[current].text} = ?
               </p>
             </div>
 
-            <form onSubmit={handleAnswer} className="flex gap-4">
+            <form onSubmit={handleAnswer} className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <input 
-                type="text" 
+                type="number" 
                 value={input}
-                onChange={(e) => setInput(e.target.value.toUpperCase())}
+                onChange={(e) => setInput(e.target.value)}
                 placeholder="Answer..."
-                className="flex-1 bg-ivory border border-border-glass rounded-xl px-5 py-4 text-green-dark text-2xl font-mono text-center focus:outline-none focus:border-green-primary shadow-sm"
+                className="flex-1 min-w-0 bg-ivory border border-border-glass rounded-card px-5 py-4 text-green-dark text-xl sm:text-2xl font-mono text-center focus:outline-none focus:border-blush shadow-cushion-sm"
                 autoFocus
               />
-              <button type="submit" className="pixel-button" style={{ color: '#041C14' }}>
+              <motion.button
+                type="submit"
+                whileTap={reduceMotion ? {} : { scale: [1, 0.92, 1.03, 1] }}
+                transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
+                className="bg-green-primary text-ivory font-bold px-8 py-4 rounded-card hover:bg-green-dark transition-colors shadow-cushion-sm"
+              >
                 Enter
-              </button>
+              </motion.button>
             </form>
-          </div>
+          </motion.div>
         )}
 
         {phase === 'result' && (
-          <div className="py-12">
-            <p className="text-2xl font-medium text-green-secondary">Simulation Complete!</p>
-            <p className="text-text-muted mt-2">Saving adaptability metrics...</p>
-          </div>
+          <motion.div
+            key="result"
+            initial={reduceMotion ? {} : { opacity: 0, y: 12 }}
+            animate={reduceMotion ? {} : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+            className="py-12"
+          >
+            <p className="font-playful text-2xl font-bold text-green-secondary">Simulation Complete!</p>
+            <div className="flex justify-center gap-1.5 mt-4">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className={`w-2.5 h-2.5 rounded-full bg-green-secondary ${reduceMotion ? '' : 'animate-dot-bounce'}`}
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </div>
+            <p className="text-text-muted mt-3 text-sm">Saving your progress...</p>
+          </motion.div>
         )}
+        </AnimatePresence>
       </motion.div>
     </div>
   )
 }
-
-
-

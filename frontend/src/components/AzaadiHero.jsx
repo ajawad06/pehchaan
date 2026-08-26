@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Star, Menu, Volume2, VolumeX, Radio, Info } from 'lucide-react'
-import PixelIcon from './PixelIcon';
+import { Star, Menu, Volume2, VolumeX, Radio, Info } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
 
@@ -77,7 +76,7 @@ export default function AzaadiHero() {
       {/* Navbar */}
       <nav className="relative z-50 flex justify-between items-center px-4 sm:px-6 md:px-10 py-4">
         <div className="font-baloo font-bold text-gold text-2xl animate-blur-fade-up" style={{ animationDelay: '0ms' }}>
-          Azaadi Adventure
+          🇵🇰 Azaadi Adventure
         </div>
         
         <div className="hidden lg:flex space-x-4">
@@ -104,8 +103,8 @@ export default function AzaadiHero() {
           {/* Left Text Block */}
           <div className="flex-1 mb-10 md:mb-0">
             <div className="flex space-x-2 mb-4">
-              <span className="paper-badge px-3 py-1 text-xs sm:text-sm animate-blur-fade-up" style={{ animationDelay: '300ms' }}>Est. 1947</span>
-              <span className="paper-badge px-3 py-1 text-xs sm:text-sm animate-blur-fade-up" style={{ animationDelay: '350ms' }}>Freedom Day</span>
+              <span className="paper-badge px-3 py-1 text-xs sm:text-sm animate-blur-fade-up" style={{ animationDelay: '300ms' }}>🎈 Est. 1947</span>
+              <span className="paper-badge px-3 py-1 text-xs sm:text-sm animate-blur-fade-up" style={{ animationDelay: '350ms' }}>🕊️ Freedom Day</span>
             </div>
             
             <h1 className="font-baloo font-extrabold text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-none tracking-tight mb-4 animate-blur-fade-up text-gold-bright" 
@@ -117,7 +116,7 @@ export default function AzaadiHero() {
             </h1>
             
             <p className="text-base sm:text-lg md:text-xl max-w-xl mb-8 animate-blur-fade-up text-cream/90" style={{ animationDelay: '500ms' }}>
-              Turn the radio, catch the stars, and discover how Pakistan came to be.
+              Turn the radio, catch the stars, and discover how Pakistan came to be! 🌟
             </p>
             
             <div className="flex flex-wrap gap-4">
@@ -126,7 +125,7 @@ export default function AzaadiHero() {
                 className="bg-gold-bright text-green-dark font-baloo font-bold text-xl px-8 py-3 rounded-full hover:scale-105 transition-transform animate-blur-fade-up shadow-[0_0_20px_rgba(244,232,193,0.6)]" 
                 style={{ animationDelay: '600ms' }}
               >
-                Tap the Radio
+                Tap the Radio! 📻
               </button>
               <button className="paper-badge px-6 py-3 font-medium flex items-center space-x-2 animate-blur-fade-up text-cream" style={{ animationDelay: '700ms' }}>
                 <Info size={20} />

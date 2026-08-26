@@ -3,7 +3,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { recordResponse } from '../services/db'
-import PixelIcon from './PixelIcon'
+import { Sparkles, Stethoscope, BarChart3, Drama, Scale, Cog, ArrowLeft, Check } from 'lucide-react'
+
+// Cluster icon keys map to lucide components (replaces the retired PixelIcon set)
+const CLUSTER_ICONS = {
+  spark:       Sparkles,
+  stethoscope: Stethoscope,
+  chart:       BarChart3,
+  theater:     Drama,
+  scales:      Scale,
+  gear:        Cog,
+}
 
 // ─── Cluster definitions ──────────────────────────────────────────────────────
 // Each cluster: 3 questions × 4 choices, each choice writes specific trait
@@ -270,16 +280,31 @@ export const DOMAIN_CLUSTER_MAP = {
   engineering: ['Civil Engineering', 'Electrical / Mechanical Engineering'],
 }
 
+// The two engines label careers differently: /recommend_careers (taxonomy)
+// returns display names like 'Software Engineering', while /predict (RF model)
+// returns snake_case ids like 'software_engineering'. Fold both to one key so
+// detection works no matter which engine produced the ranking.
+const canon = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
 export function detectTier2Cluster(top5) {
+  if (!Array.isArray(top5) || top5.length < 2) return null
+
+  const matches = (ids, careers) => {
+    const canonCareers = careers.map(canon)
+    return ids.every(c => canonCareers.includes(canon(c)))
+  }
+
   // Returns cluster name if top 3 careers all come from the same cluster
   const top3 = top5.slice(0, 3).map(r => r.cluster_id)
-  for (const [cluster, careers] of Object.entries(DOMAIN_CLUSTER_MAP)) {
-    if (top3.every(c => careers.includes(c))) return cluster
+  if (top3.length === 3) {
+    for (const [cluster, careers] of Object.entries(DOMAIN_CLUSTER_MAP)) {
+      if (matches(top3, careers)) return cluster
+    }
   }
-  // Relax: top 2 from same cluster + 3rd within 2% confidence
+  // Relax: top 2 from same cluster
   const top2 = top5.slice(0, 2).map(r => r.cluster_id)
   for (const [cluster, careers] of Object.entries(DOMAIN_CLUSTER_MAP)) {
-    if (top2.every(c => careers.includes(c))) return cluster
+    if (matches(top2, careers)) return cluster
   }
   return null
 }
@@ -356,9 +381,9 @@ export default function Tier2Disambiguation() {
       <div className="absolute top-6 left-6 z-20">
         <button
           onClick={() => navigate('/results')}
-          className="text-green-secondary hover:text-green-dark font-medium flex items-center gap-2 text-sm"
+          className="text-green-secondary hover:text-green-dark font-semibold flex items-center gap-2 bg-white/60 rounded-pill px-3 py-1.5 sm:px-4 sm:py-2 shadow-cushion-sm text-sm hover:shadow-cushion transition-shadow"
         >
-          ← Back to Results
+          <ArrowLeft size={16} className="shrink-0" /> Back to Results
         </button>
       </div>
 
@@ -366,8 +391,12 @@ export default function Tier2Disambiguation() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3"><PixelIcon name={cluster.icon} size={54} /></div>
-          <h1 className="text-3xl font-medium tracking-tight mb-2">{cluster.title}</h1>
+          <div className="flex justify-center mb-3">
+            <span className="grid place-items-center w-16 h-16 rounded-card bg-green-primary/10 text-green-primary shadow-cushion-sm">
+              {(() => { const Icon = CLUSTER_ICONS[cluster.icon] || Sparkles; return <Icon size={32} /> })()}
+            </span>
+          </div>
+          <h1 className="font-playful text-3xl font-extrabold tracking-tight mb-2">{cluster.title}</h1>
           <p className="text-text-muted text-sm max-w-md mx-auto">{cluster.subtitle}</p>
         </div>
 
@@ -378,9 +407,9 @@ export default function Tier2Disambiguation() {
               <span>Question {current + 1} of {totalQ}</span>
               <span>{Math.round(progress)}% through</span>
             </div>
-            <div className="h-1.5 bg-green-primary/10 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-green-primary/10 rounded-pill overflow-hidden">
               <motion.div
-                className="h-full bg-green-primary rounded-full"
+                className="h-full bg-green-primary rounded-pill"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.4 }}
@@ -399,7 +428,7 @@ export default function Tier2Disambiguation() {
               transition={{ duration: 0.3 }}
             >
               {/* Question */}
-              <div className="bg-soft-white border border-border-glass rounded-[28px] shadow-2xl p-8 mb-6">
+              <div className="bg-soft-white border border-border-glass rounded-card-lg shadow-cushion p-8 mb-6">
                 <p className="text-xl font-medium leading-relaxed text-center text-green-dark">
                   {q.text}
                 </p>
@@ -416,9 +445,9 @@ export default function Tier2Disambiguation() {
                       disabled={selected !== null}
                       whileHover={selected === null ? { scale: 1.01 } : {}}
                       whileTap={selected === null ? { scale: 0.99 } : {}}
-                      className={`w-full text-left px-6 py-5 rounded-2xl border font-medium transition-all duration-200 shadow-sm
+                      className={`w-full text-left px-6 py-5 rounded-card border font-medium transition-all duration-200 shadow-cushion-sm
                         ${isSelected
-                          ? 'bg-green-primary text-ivory border-green-primary shadow-lg'
+                          ? 'bg-green-primary text-ivory border-green-primary shadow-cushion'
                           : selected !== null
                             ? 'bg-soft-white border-border-glass text-text-muted opacity-50'
                             : 'bg-soft-white border-border-glass text-green-dark hover:border-green-primary hover:bg-green-primary/5'
@@ -440,10 +469,14 @@ export default function Tier2Disambiguation() {
               key="done"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-soft-white border border-border-glass rounded-[28px] shadow-2xl p-10 text-center"
+              className="bg-soft-white border border-border-glass rounded-card-lg shadow-cushion p-10 text-center"
             >
-              <div className="text-5xl mb-4">✓</div>
-              <h2 className="text-2xl font-medium mb-3">Disambiguation complete</h2>
+              <div className="flex justify-center mb-4">
+                <span className="grid place-items-center w-16 h-16 rounded-pill bg-green-primary text-ivory shadow-cushion">
+                  <Check size={32} strokeWidth={3} />
+                </span>
+              </div>
+              <h2 className="font-playful text-2xl font-extrabold tracking-tight mb-3">Disambiguation complete</h2>
               <p className="text-text-muted mb-8 max-w-sm mx-auto">
                 Your answers have sharpened the profile. Your results will now show better separation between careers in the same field.
               </p>
@@ -451,7 +484,7 @@ export default function Tier2Disambiguation() {
               {/* Preview which traits were updated */}
               <div className="flex flex-wrap gap-2 justify-center mb-8">
                 {Object.keys(accum).map(k => (
-                  <span key={k} className="px-3 py-1 bg-green-primary/10 text-green-primary text-xs font-semibold rounded-full uppercase tracking-wide">
+                  <span key={k} className="px-3 py-1 bg-green-primary/10 text-green-primary text-xs font-semibold rounded-pill uppercase tracking-wide">
                     {k.replace(/_/g, ' ')}
                   </span>
                 ))}
@@ -459,7 +492,7 @@ export default function Tier2Disambiguation() {
 
               <button
                 onClick={handleFinish}
-                className="w-full py-4 bg-green-primary text-ivory font-medium rounded-full hover:bg-green-dark transition-colors shadow-md text-lg"
+                className="w-full py-4 bg-green-primary text-ivory font-bold rounded-pill hover:bg-green-dark transition-colors shadow-cushion-sm text-lg"
               >
                 View Refined Results →
               </button>
@@ -469,11 +502,11 @@ export default function Tier2Disambiguation() {
 
         {/* Differentiator legend */}
         {!done && (
-          <div className="mt-8 p-5 bg-soft-white/60 border border-border-glass rounded-2xl">
+          <div className="mt-8 p-5 bg-soft-white/60 border border-border-glass rounded-card">
             <p className="text-xs text-text-muted font-semibold uppercase tracking-widest mb-3">What this round measures</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(cluster.differentiators).map(([career, trait]) => (
-                <span key={career} className="text-xs bg-ivory border border-border-glass px-3 py-1 rounded-full text-green-dark">
+                <span key={career} className="text-xs bg-ivory border border-border-glass px-3 py-1 rounded-pill text-green-dark">
                   <span className="font-semibold">{career.split('/')[0].trim()}</span>
                   <span className="text-text-muted"> → {trait.replace(/_/g, ' ')}</span>
                 </span>

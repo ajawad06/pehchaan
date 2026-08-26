@@ -1,5 +1,5 @@
-import React, { Component } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { useState, Component } from 'react'
 import { SessionProvider } from './store/SessionContext'
 import OnboardingFlow from './components/OnboardingFlow'
 import PatternHunter from './components/PatternHunter'
@@ -9,6 +9,7 @@ import DataDetective from './components/DataDetective'
 import CareerSimulation from './components/CareerSimulation'
 import ResultsScreen from './components/ResultsScreen'
 import LandingPage from './components/LandingPage'
+import Dashboard from './components/Dashboard'
 import DecisionLab from './components/DecisionLab'
 import NumericalReasoning from './components/NumericalReasoning'
 import VisualSpatial from './components/VisualSpatial'
@@ -42,13 +43,13 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-green-deepest text-ivory flex flex-col items-center justify-center p-6 text-center">
-          <div className="pixel-panel p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-4">Something went wrong</h2>
+        <div className="min-h-screen bg-ivory text-green-dark flex flex-col items-center justify-center p-6 text-center">
+          <div className="bg-soft-white border border-border-glass rounded-card-lg shadow-cushion p-8 max-w-md w-full">
+            <h2 className="font-playful text-2xl font-extrabold tracking-tight mb-4">Something went wrong</h2>
             <p className="text-sm mb-6 text-text-muted">An error occurred while loading this activity.</p>
-            <button 
+            <button
               onClick={() => window.location.href = '/'}
-              className="pixel-button light w-full"
+              className="w-full bg-green-primary text-ivory font-bold px-8 py-4 rounded-pill hover:bg-green-dark transition-colors shadow-cushion-sm"
             >
               Return Home
             </button>
@@ -62,6 +63,7 @@ class ErrorBoundary extends Component {
 }
 
 function App() {
+  const [theme, setTheme] = useState('theme-12-14')
   const isOnline = useOfflineSync()
 
   return (
@@ -69,9 +71,10 @@ function App() {
       <SessionProvider>
         <Router>
           {!isOnline && (
-            <div className="offline-ribbon">Offline Mode Active</div>
+            <div className="w-full bg-red-600 text-white text-center py-1 font-bold text-sm absolute top-0 z-50">
+              Offline Mode Active
+            </div>
           )}
-          <div className={!isOnline ? 'offline-ribbon-spacer' : undefined}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/start" element={<OnboardingFlow />} />
@@ -93,9 +96,9 @@ function App() {
             <Route path="/career-simulation" element={<CareerSimulation />} />
             <Route path="/tier2-disambiguation" element={<Tier2Disambiguation />} />
             <Route path="/results" element={<ResultsScreen />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          </div>
         </Router>
       </SessionProvider>
     </ErrorBoundary>
