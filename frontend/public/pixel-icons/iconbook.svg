@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" shape-rendering="crispEdges" width="24" height="24">
-  <!-- Book: Artistic (A) -->
-  <path d="M4 6h16v12H4V6z" fill="#EEE9D8"/>
-  <rect x="11" y="6" width="2" height="12" fill="#606F7B"/>
-  <path d="M14 8h3v1h-3V8zM14 11h3v1h-3v-1zM14 14h3v1h-3v-1z" fill="#062A1F"/>
-  <path d="M12 6h1v5h-1V6z" fill="#E56B6F"/>
-</svg>

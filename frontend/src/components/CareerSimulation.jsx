@@ -1,9 +1,9 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress, saveTraitVector } from '../services/db'
 import { useNavigate } from 'react-router-dom'
-import PixelIcon from './PixelIcon'
-import BackButton from './BackButton'
+import { ArrowLeft } from 'lucide-react'
 
 export default function CareerSimulation() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
@@ -12,66 +12,53 @@ export default function CareerSimulation() {
   const navigate = useNavigate()
 
   const handleSubmit = async () => {
-    if (text.length < 10) return
     setIsSubmitting(true)
-
-    // Completing the simulation is itself strong domain-exposure evidence.
-    // Write unconditionally before any async call.
-    // All traits on 0-100 scale
-    const wordCount = text.trim().split(/\s+/).filter(Boolean).length
-    const localExposure = Math.round(Math.min(100, (wordCount / 80) * 100))
-    const finalExposure = Math.max(traits.domain_exposure || 0, Math.max(60, localExposure))
-    updateTraits({ domain_exposure: finalExposure })
-
-    // Save the trait vector to Firestore immediately with what we have now
-    const snapshotTraits = { ...traits, domain_exposure: finalExposure }
-    if (sessionId) {
-      saveTraitVector(sessionId, snapshotTraits).catch(e =>
-        console.warn('saveTraitVector failed:', e)
-      )
-    }
-
-    // Fire-and-forget Gemini scoring + DB record
-    ;(async () => {
-      try {
-        const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
-        const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
-        const response = await fetch(`${API_URL}/score`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            activity_id: 'career_simulation',
-            response_text: text,
-            rubric: ['domain_exposure'],
-          }),
+    
+    try {
+      const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+      const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
+      const response = await fetch(`${API_URL}/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activity_id: 'career_simulation',
+          response_text: text,
+          rubric: ['domain_exposure']
         })
-        const scores = await response.json()
+      })
+      
+      const scores = await response.json()
+      
+      const newTraits = { ...traits, ...scores }
+      updateTraits(scores)
+      
+      if (sessionId) {
+        await recordResponse(sessionId, 'career_simulation', {
+          raw_response: text,
+          rubric_scores: scores
+        })
+        await updateSessionProgress(sessionId, 'career_simulation')
         
-        // Gemini returns 0-1 — convert to 0-100 and use Math.max
-        const scaled = {}
-        Object.entries(scores).forEach(([key, val]) => {
-          const asPercent = Math.round((typeof val === 'number' ? val : 0.5) * 100)
-          scaled[key] = Math.max(traits[key] || 0, asPercent)
-        })
-        updateTraits(scaled)
-        if (sessionId) {
-          await recordResponse(sessionId, 'career_simulation', {
-            raw_response: text,
-            rubric_scores: scores,
-          }).catch(e => console.error("Firestore error:", e))
-          await updateSessionProgress(sessionId, 'career_simulation')
-        }
-      } catch (e) {
-        console.warn('CareerSimulation Gemini scoring failed silently:', e)
+        // Final activity, save the complete trait vector
+        await saveTraitVector(sessionId, newTraits)
       }
-    })()
-
-    // Advance immediately
-    advanceFlow(navigate)
-    setIsSubmitting(false)
+      
+      advanceFlow(navigate)
+    } catch (e) {
+      console.error(e)
+      const fallback = { domain_exposure: 0.5 }
+      const newTraits = { ...traits, ...fallback }
+      updateTraits(fallback)
+      if (sessionId) {
+        await saveTraitVector(sessionId, newTraits)
+      }
+      advanceFlow(navigate)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const topInterest = traits?.interests && Object.keys(traits.interests).length > 0
+  const topInterest = traits?.interests 
     ? Object.keys(traits.interests).reduce((a, b) => traits.interests[a] > traits.interests[b] ? a : b)
     : 'your top career field';
 
@@ -86,60 +73,41 @@ export default function CareerSimulation() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
-      <BackButton />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-4 sm:p-6 relative">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-semibold flex items-center gap-2 bg-white/60 rounded-pill px-3 py-1.5 sm:px-4 sm:py-2 shadow-cushion-sm text-sm sm:text-base hover:shadow-cushion transition-shadow">
+          <ArrowLeft size={16} className="shrink-0" /> Back
+        </button>
+      </div>
 
-      <div className="flex flex-col items-center justify-center p-4 sm:p-10 pixel-panel max-w-4xl w-full mx-auto mt-4 relative">
-        <div className="absolute top-4 right-4 sm:top-8 sm:right-8">
-          <PixelIcon name="spark" size={24} />
-        </div>
-        <h2 className="text-2xl sm:text-3xl font-medium tracking-tight mb-4 sm:mb-6 capitalize flex items-center gap-2 sm:gap-3">
-          <PixelIcon name="clover" size={20} />
-          {topInterest} Simulation
-          <PixelIcon name="clover" size={20} />
-        </h2>
-        <p className="text-sm sm:text-lg mb-6 sm:mb-8 text-center text-green-dark leading-relaxed font-medium">
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+        className="flex flex-col items-center justify-center p-5 sm:p-10 bg-soft-white rounded-card-lg shadow-cushion border border-border-glass max-w-2xl w-full mx-auto"
+      >
+        <h2 className="font-playful text-xl sm:text-3xl font-extrabold tracking-tight mb-6 capitalize">{topInterest} Simulation</h2>
+        <p className="text-lg mb-10 text-center text-text-muted font-light leading-relaxed">
           {simulationPrompt}
         </p>
         
-        <div className="w-full flex flex-col sm:flex-row gap-4 mb-6">
-          <textarea 
-            className="flex-1 h-48 sm:h-64 p-4 sm:p-6 bg-ivory border-2 border-green-deepest focus:outline-none shadow-[4px_4px_0_#041C14] text-green-dark resize-none font-mono text-base sm:text-lg"
-            style={{ 
-              backgroundImage: 'linear-gradient(#B6C8BE 1px, transparent 1px), linear-gradient(90deg, #B6C8BE 1px, transparent 1px)', 
-              backgroundSize: '24px 24px',
-              lineHeight: '24px'
-            }}
-            placeholder="Start drafting here..."
-            value={text}
-            onChange={e => setText(e.target.value)}
-          />
-          
-          {(topInterest === 'architecture' || topInterest === 'arts') && (
-            <div className="w-full sm:w-20 shrink-0 bg-ivory border-2 border-green-deepest shadow-[4px_4px_0_#041C14] p-2 flex flex-row sm:flex-col items-center justify-around sm:justify-start gap-2 sm:gap-4 h-auto sm:h-64">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-green-dark">Tools</div>
-              <button type="button" className="p-2 border-2 border-green-deepest bg-[#FAF8EF] hover:bg-green-primary/10"><PixelIcon name="spark" size={20} /></button>
-              <button type="button" className="p-2 border-2 border-green-deepest bg-green-primary text-ivory"><PixelIcon name="hammer" size={20} /></button>
-              <button type="button" className="p-2 border-2 border-green-deepest bg-[#FAF8EF] hover:bg-green-primary/10"><PixelIcon name="palette" size={20} /></button>
-            </div>
-          )}
-        </div>
+        <textarea 
+          className="w-full h-40 p-6 bg-ivory border border-border-glass rounded-card focus:outline-none focus:border-blush mb-8 text-green-dark shadow-cushion-sm resize-none"
+          placeholder="Type your response here..."
+          value={text}
+          onChange={e => setText(e.target.value)}
+        />
         
-        <div className="w-full flex justify-between items-center">
-          <button onClick={() => setText('')} className="pixel-button ghost px-6 py-2">
-            <PixelIcon name="cross" size={14} /> Clear
-          </button>
-          <button 
-            onClick={handleSubmit}
-            disabled={isSubmitting || text.length < 10}
-            className="pixel-button px-10 py-3 disabled:opacity-50"
-            style={{ color: '#041C14' }}
-          >
-            {isSubmitting ? 'Finalize...' : 'Submit Design →'}
-          </button>
-        </div>
-      </div>
+        <motion.button 
+          onClick={handleSubmit}
+          disabled={isSubmitting || text.length < 10}
+          whileTap={{ scale: [1, 0.92, 1.03, 1] }}
+          transition={{ duration: 0.35, ease: [0.34, 1.56, 0.64, 1] }}
+          className={`w-full py-4 bg-green-primary text-ivory font-bold rounded-pill hover:bg-green-dark disabled:opacity-50 transition-colors shadow-cushion-sm ${text.length >= 10 && !isSubmitting ? 'animate-heartbeat' : ''}`}
+        >
+          {isSubmitting ? 'Finalize & View Results' : 'Submit'}
+        </motion.button>
+      </motion.div>
     </div>
   )
 }
-

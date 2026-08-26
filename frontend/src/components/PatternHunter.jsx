@@ -3,15 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
-import PixelIcon from './PixelIcon'
-import BackButton from './BackButton'
+import { ArrowLeft, Timer, Lightbulb } from 'lucide-react'
 
 const QUESTIONS = [
   { 
     id: 1, 
-    // PatternHunter owns: logical_reasoning, pattern_recognition only
-    // NOT numerical_reasoning (that's NumericalReasoning's key)
-    type: "logical_reasoning", 
+    type: "numerical_reasoning", 
     text: "Identify the missing element in the sequence: 2, 6, 12, 20, 30, ?", 
     options: ["40", "42", "44", "48"], 
     answer: "42",
@@ -35,7 +32,7 @@ const QUESTIONS = [
   },
   {
     id: 4,
-    type: "pattern_recognition",
+    type: "spatial_reasoning",
     text: "Which of the following logically completes this sequence? ▲ ● ▲ ● ■ ▲ ● ▲ ● ■ ■ ?",
     options: ["▲", "●", "■", "None"],
     answer: "▲",
@@ -94,7 +91,7 @@ export default function PatternHunter() {
         body: JSON.stringify({
           user_id: sessionId || 'anonymous',
           activity_id: 'pattern_hunter',
-          difficulty_level: 3,
+          difficulty_level: 3, // In full app, derive from traits.age_group
           telemetry: telemetry
         })
       })
@@ -102,9 +99,8 @@ export default function PatternHunter() {
       const data = await response.json()
       
       // Update local state based on backend response heuristic
-      // PatternHunter owns ONLY logical_reasoning and pattern_recognition
       if (data.estimated_skill_delta) {
-        const traitName = QUESTIONS[current].type // already remapped: only 'logical_reasoning' or 'pattern_recognition'
+        const traitName = QUESTIONS[current].type
         const newScore = Math.max(0, Math.min(100, (traits[traitName] || 50) + (data.estimated_skill_delta * 10)))
         updateTraits({ [traitName]: newScore })
       }
@@ -114,7 +110,7 @@ export default function PatternHunter() {
 
     // Save backup to Firebase
     if (sessionId) {
-      await recordResponse(sessionId, `pattern_hunter_q${current+1}`, telemetry).catch(e => console.error("Firestore error:", e))
+      await recordResponse(sessionId, `pattern_hunter_q${current+1}`, telemetry)
     }
   }
 
@@ -136,26 +132,24 @@ export default function PatternHunter() {
       was_correct: isCorrect
     }
 
-    // Write trait unconditionally first — never gate on API
-    // PatternHunter owns ONLY logical_reasoning and pattern_recognition.
-    // q.type is already remapped in QUESTIONS above: no numerical_reasoning or spatial_reasoning here.
-    const traitScore = Math.round(Math.max(10, Math.min(100,
-      (isCorrect ? Math.max(1.0 - (attempts * 0.3), 0.2) : 0.1) * 100
-    )))
-    updateTraits({ [q.type]: traitScore })
-
     // Fire-and-forget telemetry — do NOT await so it never blocks
     ;(async () => {
       try {
         const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
         const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
-        await fetch(`${API_URL}/submit_activity`, {
+        const res = await fetch(`${API_URL}/submit_activity`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: sessionId || 'anonymous', activity_id: 'pattern_hunter', difficulty_level: 3, telemetry })
         })
+        const data = await res.json()
+        if (data.estimated_skill_delta) {
+          const traitName = q.type === 'spatial_reasoning' ? 'spatial_reasoning' : 'logical_reasoning'
+          const newScore = Math.max(0, Math.min(100, (traits[traitName] || 50) + (data.estimated_skill_delta * 10)))
+          updateTraits({ [traitName]: newScore })
+        }
       } catch (e) { console.warn('Telemetry send failed silently:', e) }
-      if (sessionId) await recordResponse(sessionId, `pattern_hunter_q${current+1}`, telemetry).catch(e => console.error("Firestore error:", e))
+      if (sessionId) await recordResponse(sessionId, `pattern_hunter_q${current+1}`, telemetry)
     })()
 
     setAttempts(a => a + 1)
@@ -178,50 +172,56 @@ export default function PatternHunter() {
   const q = QUESTIONS[current]
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
-      <BackButton />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-4 sm:p-6 relative">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-semibold flex items-center gap-2 bg-white/60 rounded-pill px-3 py-1.5 sm:px-4 sm:py-2 shadow-cushion-sm text-sm sm:text-base hover:shadow-cushion transition-shadow">
+          <ArrowLeft size={16} className="shrink-0" /> Back
+        </button>
+      </div>
 
       <motion.div 
         key={current}
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full pixel-panel p-4 sm:p-8 mt-4"
+        initial={{ opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+        className="max-w-xl w-full bg-soft-white p-5 sm:p-8 rounded-card-lg shadow-cushion border border-border-glass"
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl sm:text-3xl font-medium tracking-tight flex items-center gap-3">
-            <PixelIcon name="clover" size={24} />
-            Pattern Hunter
-          </h2>
-          <div className="flex flex-col items-end gap-1">
-            <span className="text-text-muted text-[10px] uppercase tracking-widest font-bold">Stage {current + 1}/{QUESTIONS.length}</span>
-            <span className="text-green-dark font-mono font-medium px-2 py-0.5 border-2 border-green-deepest bg-ivory text-xs">⏱ {timeElapsed}s</span>
+        <div className="flex flex-wrap gap-2 justify-between items-center mb-6">
+          <h2 className="font-playful text-xl sm:text-3xl font-extrabold tracking-tight">Pattern Hunter</h2>
+          <div className="flex space-x-4 items-center">
+            <span className="text-green-secondary font-mono font-bold px-4 py-1.5 bg-green-primary/5 rounded-pill flex items-center gap-1.5"><Timer size={16} className="shrink-0" /> {timeElapsed}s</span>
+            <span className="text-text-muted text-sm uppercase tracking-widest font-bold">Stage {current + 1}/{QUESTIONS.length}</span>
           </div>
         </div>
         
-        <div className="w-full bg-ivory border-2 border-border-glass p-4 sm:p-6 mb-6 text-center text-lg sm:text-xl font-medium leading-relaxed">
-          {q.text}
-        </div>
+        <p className="text-2xl mb-10 font-medium leading-relaxed">{q.text}</p>
         
-        <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-          {q.options.map(opt => (
-            <button 
+        <div className="w-full space-y-3 mb-8">
+          {q.options.map((opt, i) => (
+            <motion.button 
               key={opt}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: i * 0.06, ease: [0.34, 1.56, 0.64, 1] }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => handleAnswer(opt)}
-              className="py-4 px-2 text-center border-2 border-green-deepest bg-ivory hover:bg-green-primary hover:text-ivory shadow-[3px_3px_0_#041C14] transition-all font-mono text-xl font-bold"
+              className="w-full py-4 px-6 text-left border rounded-card transition-colors font-medium border-green-primary/10 bg-ivory hover:bg-green-primary hover:text-ivory shadow-cushion-sm"
             >
               {opt}
-            </button>
+            </motion.button>
           ))}
         </div>
 
-        <div className="flex justify-between items-center mt-8 pt-6 border-t-2 border-border-glass">
+        <div className="flex flex-wrap gap-3 justify-between items-center mt-8 pt-6 border-t border-green-primary/10">
           <button 
             onClick={useHint}
             disabled={showHint}
-            className={`pixel-button text-xs py-2 px-4 ${showHint ? 'opacity-50 cursor-not-allowed' : 'ghost'}`}
-            style={showHint ? { background: 'transparent', color: 'var(--muted)', borderColor: 'var(--muted)' } : {}}
+            className={`text-sm px-4 sm:px-6 py-2.5 rounded-pill border transition-colors font-semibold flex items-center gap-1.5 whitespace-nowrap ${
+              showHint ? 'border-border-glass text-text-muted' : 'border-green-secondary text-green-secondary hover:bg-green-secondary hover:text-ivory'
+            }`}
           >
-            {showHint ? "Hint Used" : "? Need a hint?"}
+            <Lightbulb size={15} className="shrink-0" />
+            {showHint ? "Hint Used" : "Need a hint?"}
           </button>
           
           <AnimatePresence>
@@ -229,7 +229,8 @@ export default function PatternHunter() {
               <motion.div 
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="text-sm text-green-secondary max-w-[60%] text-right font-medium"
+                transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+                className="text-sm text-green-secondary w-full sm:w-auto sm:max-w-[60%] text-left sm:text-right font-medium break-words"
               >
                 {q.hint}
               </motion.div>
@@ -240,6 +241,3 @@ export default function PatternHunter() {
     </div>
   )
 }
-
-
-

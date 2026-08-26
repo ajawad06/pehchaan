@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
-import PixelIcon from './PixelIcon'
-import BackButton from './BackButton'
+import { ArrowLeft, Timer } from 'lucide-react'
 
 const QUESTIONS = [
   { 
@@ -59,30 +58,30 @@ export default function VisualSpatial() {
       quit: false,
     }
 
-    // Write spatial_reasoning unconditionally FIRST — never gate on API response
-    const spatialScore = Math.round(Math.max(10, Math.min(100, accuracy * 100)))
-    updateTraits({ spatial_reasoning: Math.max(traits.spatial_reasoning || 0, spatialScore) })
-
-    // Fire-and-forget telemetry
-    ;(async () => {
-      try {
-        await fetch(`${API_URL}/submit_activity`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: sessionId || 'anonymous',
-            activity_id: 'visual_spatial',
-            difficulty_level: traits?.age_group?.includes('14') ? 1 : 3,
-            telemetry: telemetry
-          })
+    try {
+      const response = await fetch(`${API_URL}/submit_activity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: sessionId || 'anonymous',
+          activity_id: 'visual_spatial',
+          difficulty_level: traits?.age_group?.includes('14') ? 1 : 3,
+          telemetry: telemetry
         })
-      } catch (error) {
-        console.warn('VisualSpatial telemetry failed silently:', error)
+      })
+      
+      const data = await response.json()
+      
+      if (data.estimated_skill_delta) {
+        const newScore = Math.max(0, Math.min(100, (traits.spatial_reasoning || 50) + (data.estimated_skill_delta * 10)))
+        updateTraits({ spatial_reasoning: newScore })
       }
-    })()
+    } catch (error) {
+      console.error("Failed to send telemetry to backend:", error)
+    }
 
     if (sessionId) {
-      await recordResponse(sessionId, 'visual_spatial', telemetry).catch(e => console.error("Firestore error:", e))
+      await recordResponse(sessionId, 'visual_spatial', telemetry)
     }
     
     setTimeout(() => {
@@ -95,28 +94,28 @@ export default function VisualSpatial() {
     setAttempts(a => a + 1)
     setWrongAnswers(prev => [...prev, selected])
 
-    // Write spatial_reasoning unconditionally on every answer
-    const answerAccuracy = isCorrect ? 0.9 : 0.1
-    const spatialScore = Math.round(Math.max(10, Math.min(100, answerAccuracy * 100)))
-    updateTraits({ spatial_reasoning: Math.max(traits.spatial_reasoning || 0, spatialScore) })
-
     // Fire-and-forget telemetry
     ;(async () => {
       try {
         const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
         const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl
-        await fetch(`${API_URL}/submit_activity`, {
+        const res = await fetch(`${API_URL}/submit_activity`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             user_id: sessionId || 'anonymous',
             activity_id: 'visual_spatial',
             difficulty_level: 3,
-            telemetry: { response_time_sec: timeElapsed, hints_used: 0, accuracy: answerAccuracy, attempts: attempts + 1, completed: true, quit: false, was_correct: isCorrect }
+            telemetry: { response_time_sec: timeElapsed, hints_used: 0, accuracy: isCorrect ? 0.9 : 0.1, attempts: attempts + 1, completed: true, quit: false, was_correct: isCorrect }
           })
         })
+        const data = await res.json()
+        if (data.estimated_skill_delta) {
+          const newScore = Math.max(0, Math.min(100, (traits.spatial_reasoning || 50) + (data.estimated_skill_delta * 10)))
+          updateTraits({ spatial_reasoning: newScore })
+        }
       } catch (e) { console.warn('Telemetry failed silently:', e) }
-      if (sessionId) await recordResponse(sessionId, 'visual_spatial', { was_correct: isCorrect }).catch(e => console.error("Firestore error:", e))
+      if (sessionId) await recordResponse(sessionId, 'visual_spatial', { was_correct: isCorrect })
     })()
 
     // Always advance
@@ -128,38 +127,47 @@ export default function VisualSpatial() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-20 sm:pt-24 px-4 sm:px-6 pb-6 relative">
-      <BackButton />
+    <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark p-4 sm:p-6 relative">
+      <div className="absolute top-4 left-4 sm:top-6 sm:left-6">
+        <button onClick={() => navigate('/')} className="text-green-secondary hover:text-green-dark font-semibold flex items-center gap-2 bg-white/60 rounded-pill px-3 py-1.5 sm:px-4 sm:py-2 shadow-cushion-sm text-sm sm:text-base hover:shadow-cushion transition-shadow">
+          <ArrowLeft size={16} className="shrink-0" /> Back
+        </button>
+      </div>
 
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-xl w-full pixel-panel p-4 sm:p-8 mt-4"
+        initial={{ opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+        className="max-w-xl w-full bg-soft-white p-5 sm:p-8 rounded-card-lg shadow-cushion border border-border-glass"
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-medium tracking-tight">Spatial Reasoning</h2>
-          <span className="text-green-secondary font-mono font-medium px-3 py-1 bg-green-primary/5 rounded-full">⏱ {timeElapsed}s</span>
+        <div className="flex flex-wrap gap-2 justify-between items-center mb-6">
+          <h2 className="font-playful text-xl sm:text-3xl font-extrabold tracking-tight">Spatial Reasoning</h2>
+          <span className="text-green-secondary font-mono font-medium px-3 py-1 bg-green-primary/5 rounded-pill flex items-center gap-1.5"><Timer size={15} className="shrink-0" /> {timeElapsed}s</span>
         </div>
         
-        <div className="bg-ivory rounded-2xl p-6 mb-8 border border-green-primary/10">
+        <div className="bg-ivory rounded-card p-6 mb-8 border border-green-primary/10">
           <p className="text-sm text-text-muted text-center mb-4">Question {current + 1} of {QUESTIONS.length}</p>
           <p className="text-xl font-medium text-center leading-relaxed text-green-dark">{QUESTIONS[current]?.prompt}</p>
         </div>
         
         {!completed ? (
           <div className="w-full space-y-3 mb-8">
-          {QUESTIONS[current]?.options.map(opt => (
-            <button 
+          {QUESTIONS[current]?.options.map((opt, i) => (
+            <motion.button 
               key={opt}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: i * 0.06, ease: [0.34, 1.56, 0.64, 1] }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => handleAnswer(opt)}
-              className="w-full py-4 px-6 text-left border border-border-glass rounded-2xl bg-ivory hover:bg-green-primary hover:text-ivory transition-all font-medium shadow-sm"
+              className="w-full py-4 px-6 text-left border border-border-glass rounded-card bg-ivory hover:bg-green-primary hover:text-ivory transition-colors font-medium shadow-cushion-sm"
             >
               {opt}
-            </button>
+            </motion.button>
           ))}
         </div>
         ) : (
-          <div className="bg-green-primary/10 text-green-dark p-5 rounded-xl text-center font-medium mb-8">
+          <div className="bg-green-primary/10 text-green-dark p-5 rounded-card text-center font-medium mb-8">
             Complete! Calculating your spatial reasoning score...
           </div>
         )}
@@ -167,6 +175,3 @@ export default function VisualSpatial() {
     </div>
   )
 }
-
-
-
