@@ -6,41 +6,72 @@ import { useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Wrench, HardHat, Pickaxe, BarChart3, FlaskConical, FileText,
   Palette, PenLine, Clapperboard, HeartHandshake, Heart, BookOpen,
-  Megaphone, Crown, Handshake, FolderCog, Receipt, ClipboardList, X, Check
+  Megaphone, Crown, Handshake, FolderCog, Receipt, ClipboardList, X, Check,
+  Hammer, Sprout, Microscope, Calculator, Music, Camera, Stethoscope,
+  MessagesSquare, Store, Target, CalendarDays, ListChecks
 } from 'lucide-react'
+import { sampleBalanced } from '../utils/randomize'
 
-// 18 cards, 3 per RIASEC letter, each with weights that accumulate
-const CARDS = [
+// RIASEC card bank — 5 per letter, tagged with `dim` so the deck can be drawn
+// evenly. Each session serves 3 per letter (18 cards, same as before), chosen
+// at random and shuffled so the letters don't arrive in blocks.
+//
+// The balance matters: scoring normalises each letter by the maximum it could
+// have scored, so every letter must be offered the same number of times or the
+// resulting profile is skewed by the deck rather than by the student.
+const CARD_BANK = [
   // Realistic (R)
-  { id: 1, text: "Fix a broken machine or engine", icon: Wrench, weights: { R: 0.9, I: 0.2 } },
-  { id: 2, text: "Build something with your hands", icon: HardHat, weights: { R: 0.8, C: 0.1 } },
-  { id: 3, text: "Work outdoors on a construction site", icon: Pickaxe, weights: { R: 0.7, E: 0.1 } },
+  { id: 1,  dim: 'R', text: "Fix a broken machine or engine",            icon: Wrench,      weights: { R: 0.9, I: 0.2 } },
+  { id: 2,  dim: 'R', text: "Build something with your hands",           icon: HardHat,     weights: { R: 0.8, C: 0.1 } },
+  { id: 3,  dim: 'R', text: "Work outdoors on a construction site",      icon: Pickaxe,     weights: { R: 0.7, E: 0.1 } },
+  { id: 19, dim: 'R', text: "Repair a bicycle or motorbike yourself",    icon: Hammer,      weights: { R: 0.85, C: 0.1 } },
+  { id: 20, dim: 'R', text: "Grow and tend crops on a farm",             icon: Sprout,      weights: { R: 0.75, I: 0.1 } },
+
   // Investigative (I)
-  { id: 4, text: "Analyze a complex dataset to find patterns", icon: BarChart3, weights: { I: 0.9, C: 0.3 } },
-  { id: 5, text: "Conduct a science experiment", icon: FlaskConical, weights: { I: 0.8, R: 0.1 } },
-  { id: 6, text: "Research and write a technical report", icon: FileText, weights: { I: 0.7, C: 0.3 } },
+  { id: 4,  dim: 'I', text: "Analyze a complex dataset to find patterns", icon: BarChart3,  weights: { I: 0.9, C: 0.3 } },
+  { id: 5,  dim: 'I', text: "Conduct a science experiment",               icon: FlaskConical, weights: { I: 0.8, R: 0.1 } },
+  { id: 6,  dim: 'I', text: "Research and write a technical report",      icon: FileText,   weights: { I: 0.7, C: 0.3 } },
+  { id: 21, dim: 'I', text: "Study cells under a microscope",             icon: Microscope, weights: { I: 0.85, R: 0.1 } },
+  { id: 22, dim: 'I', text: "Work out why a formula gives a wrong answer", icon: Calculator, weights: { I: 0.8, C: 0.2 } },
+
   // Artistic (A)
-  { id: 7, text: "Design a poster or visual artwork", icon: Palette, weights: { A: 0.9, E: 0.2 } },
-  { id: 8, text: "Write a short story or poem", icon: PenLine, weights: { A: 0.8, I: 0.2 } },
-  { id: 9, text: "Direct a short film or music video", icon: Clapperboard, weights: { A: 0.7, E: 0.3 } },
+  { id: 7,  dim: 'A', text: "Design a poster or visual artwork",         icon: Palette,     weights: { A: 0.9, E: 0.2 } },
+  { id: 8,  dim: 'A', text: "Write a short story or poem",               icon: PenLine,     weights: { A: 0.8, I: 0.2 } },
+  { id: 9,  dim: 'A', text: "Direct a short film or music video",        icon: Clapperboard, weights: { A: 0.7, E: 0.3 } },
+  { id: 23, dim: 'A', text: "Compose or perform a piece of music",       icon: Music,       weights: { A: 0.85, S: 0.1 } },
+  { id: 24, dim: 'A', text: "Photograph a street or a festival",         icon: Camera,      weights: { A: 0.75, R: 0.1 } },
+
   // Social (S)
-  { id: 10, text: "Help a classmate who is struggling", icon: HeartHandshake, weights: { S: 0.9, A: 0.2 } },
-  { id: 11, text: "Volunteer at a community event", icon: Heart, weights: { S: 0.8, E: 0.2 } },
-  { id: 12, text: "Teach someone a new skill", icon: BookOpen, weights: { S: 0.7, C: 0.1 } },
+  { id: 10, dim: 'S', text: "Help a classmate who is struggling",        icon: HeartHandshake, weights: { S: 0.9, A: 0.2 } },
+  { id: 11, dim: 'S', text: "Volunteer at a community event",            icon: Heart,       weights: { S: 0.8, E: 0.2 } },
+  { id: 12, dim: 'S', text: "Teach someone a new skill",                 icon: BookOpen,    weights: { S: 0.7, C: 0.1 } },
+  { id: 25, dim: 'S', text: "Care for a patient who is frightened",      icon: Stethoscope, weights: { S: 0.88, I: 0.15 } },
+  { id: 26, dim: 'S', text: "Mediate a disagreement between friends",    icon: MessagesSquare, weights: { S: 0.8, E: 0.2 } },
+
   // Enterprising (E)
-  { id: 13, text: "Pitch a business idea to investors", icon: Megaphone, weights: { E: 0.9, S: 0.3 } },
-  { id: 14, text: "Lead a project and delegate tasks", icon: Crown, weights: { E: 0.8, C: 0.2 } },
-  { id: 15, text: "Negotiate the best deal in a transaction", icon: Handshake, weights: { E: 0.7, R: 0.1 } },
+  { id: 13, dim: 'E', text: "Pitch a business idea to investors",        icon: Megaphone,   weights: { E: 0.9, S: 0.3 } },
+  { id: 14, dim: 'E', text: "Lead a project and delegate tasks",         icon: Crown,       weights: { E: 0.8, C: 0.2 } },
+  { id: 15, dim: 'E', text: "Negotiate the best deal in a transaction",  icon: Handshake,   weights: { E: 0.7, R: 0.1 } },
+  { id: 27, dim: 'E', text: "Run a stall and talk customers into buying", icon: Store,      weights: { E: 0.85, S: 0.2 } },
+  { id: 28, dim: 'E', text: "Set a target for a team and drive them to it", icon: Target,   weights: { E: 0.8, C: 0.15 } },
+
   // Conventional (C)
-  { id: 16, text: "Organize files and create a database", icon: FolderCog, weights: { C: 0.9, R: 0.2 } },
-  { id: 17, text: "Audit financial records for errors", icon: Receipt, weights: { C: 0.8, I: 0.3 } },
-  { id: 18, text: "Create a detailed spreadsheet plan", icon: ClipboardList, weights: { C: 0.7, I: 0.2 } },
+  { id: 16, dim: 'C', text: "Organize files and create a database",      icon: FolderCog,   weights: { C: 0.9, R: 0.2 } },
+  { id: 17, dim: 'C', text: "Audit financial records for errors",        icon: Receipt,     weights: { C: 0.8, I: 0.3 } },
+  { id: 18, dim: 'C', text: "Create a detailed spreadsheet plan",        icon: ClipboardList, weights: { C: 0.7, I: 0.2 } },
+  { id: 29, dim: 'C', text: "Keep a precise schedule for a busy office", icon: CalendarDays, weights: { C: 0.85, S: 0.1 } },
+  { id: 30, dim: 'C', text: "Check a long list for anything out of place", icon: ListChecks, weights: { C: 0.8, I: 0.2 } },
 ]
+
+const CARDS_PER_DIMENSION = 3
 
 export default function InstinctSwipe() {
   const { sessionId, updateTraits, advanceFlow } = useSession()
   const navigate = useNavigate()
-  
+
+  // Drawn once per mount. Balanced across all six letters, then shuffled.
+  const [CARDS] = useState(() => sampleBalanced(CARD_BANK, c => c.dim, CARDS_PER_DIMENSION))
+
   const [current, setCurrent] = useState(0)
   const [scores, setScores] = useState({ R: 0, I: 0, A: 0, S: 0, E: 0, C: 0 })
   const [maxScores, setMaxScores] = useState({ R: 0, I: 0, A: 0, S: 0, E: 0, C: 0 })

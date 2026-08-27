@@ -4,11 +4,28 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Timer } from 'lucide-react'
+import { pick } from '../utils/randomize'
+
+// Divergent-thinking objects — one is drawn per session. Each is an everyday,
+// low-cost item with an obvious primary use, so the challenge is always the
+// same shape: get past the obvious answer.
+const OBJECTS = [
+  { name: 'BRICK',       hint: "A brick doesn't just have to be for building walls!" },
+  { name: 'PAPERCLIP',   hint: "A paperclip doesn't just have to hold paper together!" },
+  { name: 'BUCKET',      hint: "A bucket doesn't just have to carry water!" },
+  { name: 'NEWSPAPER',   hint: "A newspaper doesn't just have to be read!" },
+  { name: 'RUBBER BAND', hint: "A rubber band doesn't just have to hold things closed!" },
+  { name: 'UMBRELLA',    hint: "An umbrella doesn't just have to keep rain off!" },
+  { name: 'SPOON',       hint: "A spoon doesn't just have to be for eating!" },
+]
 
 export default function CreativeUses() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
   
+  // One object drawn per mount.
+  const [OBJECT] = useState(() => pick(OBJECTS))
+
   const [ideas, setIdeas] = useState([])
   const [currentIdea, setCurrentIdea] = useState('')
   const [startTs, setStartTs] = useState(Date.now())
@@ -45,7 +62,7 @@ export default function CreativeUses() {
     const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
     
     // Base score on quantity of ideas generated within 60s
-    // Real ML would use Gemini to judge uniqueness, but for MVP we use count + length
+    // A future version could have the LLM judge uniqueness, but for MVP we use count + length
     let estimatedCreativity = 0.5
     if (ideas.length >= 8) estimatedCreativity = 1.0
     else if (ideas.length >= 5) estimatedCreativity = 0.8
@@ -115,8 +132,8 @@ export default function CreativeUses() {
         </div>
         
         <div className="bg-ivory rounded-card p-6 mb-8 border border-green-primary/10">
-          <p className="text-xl font-medium text-center mb-2 leading-relaxed">How many different uses can you think of for a <span className="text-green-primary font-bold">BRICK</span>?</p>
-          <p className="text-sm text-text-muted text-center">Think outside the box. A brick doesn't just have to be for building walls!</p>
+          <p className="text-xl font-medium text-center mb-2 leading-relaxed">How many different uses can you think of for {'AEIOU'.includes(OBJECT.name[0]) ? 'an' : 'a'} <span className="text-green-primary font-bold">{OBJECT.name}</span>?</p>
+          <p className="text-sm text-text-muted text-center">{`Think outside the box. ${OBJECT.hint}`}</p>
         </div>
         
         {!completed ? (

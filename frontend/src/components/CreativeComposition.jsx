@@ -4,25 +4,51 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Palette } from 'lucide-react'
+import { pick } from '../utils/randomize'
 
-const PROMPT = {
-  title: 'Creative Composition',
-  instruction: 'Look at this scene in your mind: a deserted coastal town at dusk, the last fishing boats returning, an old lighthouse flickering. In 4–6 sentences, describe what you see, hear, and feel — and what story this place is silently telling.',
-  placeholder: 'Begin your description here...',
-  minLength: 60,
-}
+// Scene prompts — one is drawn per session. All ask for the same thing
+// (4–6 sentences of sensory description plus an implied story), so they are
+// interchangeable for scoring; only the scene changes.
+const PROMPTS = [
+  {
+    instruction: 'Look at this scene in your mind: a deserted coastal town at dusk, the last fishing boats returning, an old lighthouse flickering. In 4–6 sentences, describe what you see, hear, and feel — and what story this place is silently telling.',
+    placeholder: 'Begin your description here...',
+  },
+  {
+    instruction: 'Picture a railway platform at 4am. One bench, one waiting passenger, a train that has not come. In 4–6 sentences, describe what you see, hear, and feel — and what story this place is silently telling.',
+    placeholder: 'Begin your description here...',
+  },
+  {
+    instruction: 'Imagine a rooftop in an old city during the first rain after a long summer. Washing still hanging, someone running to collect it. In 4–6 sentences, describe what you see, hear, and feel — and what story this moment is silently telling.',
+    placeholder: 'Begin your description here...',
+  },
+  {
+    instruction: 'Picture a classroom on the last day of school, an hour after everyone has left. Chairs stacked, one forgotten notebook on a desk. In 4–6 sentences, describe what you see, hear, and feel — and what story this room is silently telling.',
+    placeholder: 'Begin your description here...',
+  },
+  {
+    instruction: 'Imagine a roadside tea stall on a mountain pass at first light. Steam, a stopped truck, two strangers not speaking. In 4–6 sentences, describe what you see, hear, and feel — and what story this place is silently telling.',
+    placeholder: 'Begin your description here...',
+  },
+]
+
+const TITLE = 'Creative Composition'
+const MIN_LENGTH = 60
 
 export default function CreativeComposition() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
+  // One scene drawn per mount.
+  const [PROMPT] = useState(() => pick(PROMPTS))
+
   const [text, setText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
 
   const handleSubmit = async () => {
-    if (text.length < PROMPT.minLength) return
+    if (text.length < MIN_LENGTH) return
     setIsSubmitting(true)
 
-    // Write local defaults unconditionally — never block on Gemini latency
+    // Write local defaults unconditionally — never block on LLM latency
     // ALL scores on 0-100 scale to match Cognitive Profile display
     const wordCount = text.trim().split(/\s+/).filter(Boolean).length
     updateTraits({
@@ -31,7 +57,7 @@ export default function CreativeComposition() {
       verbal_reasoning:  Math.max(traits.verbal_reasoning || 0, Math.round(Math.min(100, (wordCount / 60) * 100))),
     })
 
-    // Fire-and-forget Gemini scoring — refines traits in background
+    // Fire-and-forget LLM scoring — refines traits in background
     ;(async () => {
       try {
         const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
@@ -46,7 +72,7 @@ export default function CreativeComposition() {
           }),
         })
         const scores = await response.json()
-        // Gemini returns 0-1 — convert to 0-100 and Math.max to preserve higher
+        // The scorer returns 0-1 — convert to 0-100 and Math.max to preserve higher
         const scaled = {}
         Object.entries(scores).forEach(([key, val]) => {
           const asPercent = Math.round((typeof val === 'number' ? val : 0.5) * 100)
@@ -61,7 +87,7 @@ export default function CreativeComposition() {
           await updateSessionProgress(sessionId, 'creative_composition')
         }
       } catch (e) {
-        console.warn('CreativeComposition Gemini scoring failed silently:', e)
+        console.warn('CreativeComposition LLM scoring failed silently:', e)
       }
     })()
 
@@ -90,7 +116,7 @@ export default function CreativeComposition() {
           <span className="grid place-items-center w-11 h-11 rounded-card bg-green-primary/10 text-green-primary shrink-0">
             <Palette size={24} />
           </span>
-          <h2 className="font-playful text-2xl sm:text-3xl font-extrabold tracking-tight">{PROMPT.title}</h2>
+          <h2 className="font-playful text-2xl sm:text-3xl font-extrabold tracking-tight">{TITLE}</h2>
         </div>
         <p className="text-xs uppercase tracking-widest text-text-muted mb-8 font-semibold">
           Creativity · Aesthetic Judgment · Verbal Expression
@@ -120,8 +146,8 @@ export default function CreativeComposition() {
 
         <motion.button
           onClick={handleSubmit}
-          disabled={isSubmitting || text.length < PROMPT.minLength}
-          whileTap={text.length >= PROMPT.minLength ? { scale: [1, 0.9, 1.03, 1] } : {}}
+          disabled={isSubmitting || text.length < MIN_LENGTH}
+          whileTap={text.length >= MIN_LENGTH ? { scale: [1, 0.9, 1.03, 1] } : {}}
           transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
           className="w-full bg-green-primary text-ivory font-bold px-8 py-4 rounded-pill hover:bg-green-dark transition-colors shadow-cushion-sm disabled:opacity-40 disabled:cursor-not-allowed"
         >

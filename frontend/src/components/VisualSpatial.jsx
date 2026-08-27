@@ -3,29 +3,62 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
+import { sample } from '../utils/randomize'
 import { ArrowLeft, Timer } from 'lucide-react'
 
-const QUESTIONS = [
-  { 
-    prompt: "Which shape can be folded to make a perfect cube?", 
-    options: ["A shape with 5 squares", "A T-shape with 6 squares", "A square of 4 squares", "A line of 6 squares"], 
-    a: "A T-shape with 6 squares" 
+// Spatial item bank — three are drawn per session. All items measure the same
+// trait, so no grouping is needed and a plain sample is enough.
+const ITEM_BANK = [
+  {
+    prompt: "Which shape can be folded to make a perfect cube?",
+    options: ["A shape with 5 squares", "A T-shape with 6 squares", "A square of 4 squares", "A line of 6 squares"],
+    a: "A T-shape with 6 squares"
   },
-  { 
-    prompt: "If you rotate a lowercase 'b' 180 degrees clockwise, it becomes...", 
-    options: ["p", "q", "d", "b"], 
-    a: "q" 
+  {
+    prompt: "If you rotate a lowercase 'b' 180 degrees clockwise, it becomes...",
+    options: ["p", "q", "d", "b"],
+    a: "q"
   },
-  { 
-    prompt: "Which 3D shape looks like a circle from the top and a triangle from the side?", 
-    options: ["Cylinder", "Sphere", "Cone", "Pyramid"], 
-    a: "Cone" 
+  {
+    prompt: "Which 3D shape looks like a circle from the top and a triangle from the side?",
+    options: ["Cylinder", "Sphere", "Cone", "Pyramid"],
+    a: "Cone"
+  },
+  {
+    prompt: "You are looking at a cube. How many faces can you see at once, at most?",
+    options: ["1", "2", "3", "4"],
+    a: "3"
+  },
+  {
+    prompt: "A ladder leans against a wall. If you pull its base further out, the top of the ladder...",
+    options: ["Rises", "Falls", "Stays level", "Tilts sideways"],
+    a: "Falls"
+  },
+  {
+    prompt: "Which shape has the same outline from every direction you view it?",
+    options: ["Cube", "Cone", "Sphere", "Cylinder"],
+    a: "Sphere"
+  },
+  {
+    prompt: "Hold your right hand up to a mirror. The reflection looks like a...",
+    options: ["Right hand", "Left hand", "Upside-down right hand", "Neither"],
+    a: "Left hand"
+  },
+  {
+    prompt: "A piece of paper is folded in half twice, then one hole is punched through. How many holes when unfolded?",
+    options: ["1", "2", "4", "8"],
+    a: "4"
   }
 ]
+
+const ITEMS_PER_SESSION = 3
 
 export default function VisualSpatial() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
+
+  // Three items drawn once per mount.
+  const [QUESTIONS] = useState(() => sample(ITEM_BANK, ITEMS_PER_SESSION))
   
   const [current, setCurrent] = useState(0)
   const [startTs, setStartTs] = useState(Date.now())

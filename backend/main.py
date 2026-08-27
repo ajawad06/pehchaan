@@ -1,8 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict, List, Any, Optional
-import joblib
-import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
@@ -28,13 +26,53 @@ except Exception as e:
     print(f"Error initializing Firebase Admin from env: {e}")
 
 try:
-    from google import genai
-    from google.genai import types
-    API_KEY = os.environ.get("GEMINI_API_KEY")
-    gemini_client = genai.Client(api_key=API_KEY) if API_KEY else None
+    from groq import Groq
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+    groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 except Exception as e:
-    print(f"Error initializing Gemini client: {e}")
-    gemini_client = None
+    print(f"Error initializing Groq client: {e}")
+    groq_client = None
+
+# Model names churn; keep this configurable so a rename is an env change,
+# not a code change.
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+
+
+def llm_json(prompt: str, temperature: float = 0.0, attempts: int = 2):
+    """
+    Single place where the LLM is called. Asks for a JSON object, parses it,
+    and retries once on malformed output.
+
+    Returns None on failure — every caller has its own deterministic fallback
+    and must never block the student's flow on this succeeding.
+
+    temperature defaults to 0: ranking and scoring must be reproducible, so a
+    student who retakes the assessment doesn't get a different answer from the
+    same responses. Prose generation passes a higher value explicitly.
+    """
+    if not groq_client:
+        return None
+
+    for attempt in range(attempts):
+        try:
+            completion = groq_client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a precise scoring and analysis engine. "
+                                   "You reply with a single valid JSON object and nothing else.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                response_format={"type": "json_object"},
+                temperature=temperature,
+            )
+            return json.loads(completion.choices[0].message.content)
+        except Exception as e:
+            print(f"Groq attempt {attempt + 1}/{attempts} failed: {e}")
+
+    return None
 
 app = FastAPI(title="Pehchaan API")
 
@@ -47,27 +85,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Load the model
-try:
-    clf = joblib.load("career_model.joblib")
-    model_loaded = True
-except Exception as e:
-    print(f"Error loading model: {e}")
-    model_loaded = False
-
-FEATURES = ["R","I","A","S","E","C","numerical_reasoning","analytical_thinking",
-            "creativity","communication","risk_tolerance","domain_exposure"]
-
-class PredictRequest(BaseModel):
-    trait_vector: Dict[str, float]
+# The RandomForest that used to serve /predict was trained on synthetic data
+# generated from hand-written RIASEC assumptions, so it could only recover what
+# was already encoded by hand. Measured against the same data it was beaten by a
+# nearest-centroid model 15,000x smaller. Ranking now runs through /rank:
+# the O*NET taxonomy scores candidates, an LLM re-ranks them in context.
 
 class ClusterConfidence(BaseModel):
     cluster_id: str
     confidence: float
-
-class PredictResponse(BaseModel):
-    ranked_clusters: List[ClusterConfidence]
-    model_version: str
 
 class ScoreRequest(BaseModel):
     activity_id: str
@@ -83,44 +109,173 @@ class ExplainRequest(BaseModel):
 
 class ExplainResponse(BaseModel):
     explanations: Dict[str, str]
-@app.post("/predict", response_model=PredictResponse)
-def predict(request: PredictRequest):
-    if not model_loaded:
-        raise HTTPException(status_code=500, detail="Model not loaded")
-    
-    vector = request.trait_vector
-    # Extract features in the correct order
-    input_data = []
-    for f in FEATURES:
-        input_data.append(vector.get(f, 0.0))
-        
-    df = pd.DataFrame([input_data], columns=FEATURES)
-    
-    # Get probabilities
-    probas = clf.predict_proba(df)[0]
-    classes = clf.classes_
-    
-    # Map probabilities to classes
-    results = []
-    for cls, prob in zip(classes, probas):
-        results.append(ClusterConfidence(cluster_id=cls, confidence=round(float(prob), 4)))
-        
-    # Sort by confidence descending
-    results.sort(key=lambda x: x.confidence, reverse=True)
-    
-    # Return top 5
-    return PredictResponse(
-        ranked_clusters=results[:5],
-        model_version="rf_v2"
+
+# ─── /rank ────────────────────────────────────────────────────────────────────
+# Two stages, deliberately separated:
+#   1. The O*NET taxonomy scores all 21 careers deterministically. This is the
+#      auditable part — every number traces to a measured trait and a published
+#      occupational profile.
+#   2. An LLM re-ranks only the shortlist those scores produced. It can weigh
+#      things cosine similarity cannot (age band, stated values, interest vs
+#      aptitude conflicts) but it can never introduce a career, because the
+#      candidate list is fixed before it is called.
+#
+# The final score is a blend of both, and both components are returned, so a
+# ranking can always be explained rather than asserted.
+
+SHORTLIST_SIZE = 8
+RESULTS_RETURNED = 5
+TAXONOMY_WEIGHT = 0.6      # deterministic component
+LLM_WEIGHT = 0.4           # contextual component
+
+
+class RankRequest(BaseModel):
+    trait_vector: Dict[str, float] = {}
+    abilities: Dict[str, float] = {}
+    interests: Dict[str, float] = {}
+    career_values: List[str] = []
+    age_band: str = "16-17"
+
+
+@app.post("/rank")
+def rank(request: RankRequest):
+    riasec = {k: request.trait_vector.get(k, 0.0) for k in ["R", "I", "A", "S", "E", "C"]}
+
+    # Abilities come from the explicit field, falling back to whatever
+    # non-RIASEC keys the trait vector carries.
+    abilities = dict(request.abilities) or {
+        k: v for k, v in request.trait_vector.items() if k not in riasec
+    }
+
+    scored = onet_recommend_careers(riasec, abilities)
+    if not scored:
+        raise HTTPException(status_code=500, detail="Taxonomy scoring returned nothing")
+
+    shortlist = scored[:SHORTLIST_SIZE]
+    allowed = {c["career"] for c in shortlist}
+
+    def taxonomy_only(reason: str):
+        return {
+            "ranked_clusters": [
+                {
+                    "cluster_id": c["career"],
+                    "confidence": round(c["compatibility"] / 100, 4),
+                    "taxonomy_score": round(c["compatibility"] / 100, 4),
+                    "llm_score": None,
+                    "reasoning": None,
+                }
+                for c in shortlist[:RESULTS_RETURNED]
+            ],
+            "model_version": "taxonomy_v2",
+            "engine": "taxonomy_only",
+            "note": reason,
+        }
+
+    if not groq_client:
+        return taxonomy_only("LLM unavailable — deterministic ranking only")
+
+    candidate_lines = chr(10).join(
+        f'  - "{c["career"]}" — interest match {c["interest_match"]}%, '
+        f'ability match {c["ability_match"]}%, combined {c["compatibility"]}%'
+        for c in shortlist
     )
+    trait_lines = ", ".join(f"{k}={round(v * 100)}" for k, v in request.trait_vector.items())
+    interest_lines = ", ".join(request.interests.keys()) or "none stated"
+    values_lines = ", ".join(request.career_values) or "none stated"
+
+    prompt = f"""A student in Pakistan, age band {request.age_band}, completed a series of
+aptitude and interest activities. Their measured profile (0-100):
+{trait_lines}
+
+They said they are interested in: {interest_lines}
+They said they value: {values_lines}
+
+A deterministic O*NET-based engine scored these candidate careers:
+{candidate_lines}
+
+Re-rank these candidates for THIS student. You may disagree with the ordering
+above where the numbers miss context — for example when a strong interest has
+had no chance to develop into measured aptitude yet, or when a high ability
+score reflects a general skill rather than genuine fit for that field.
+
+Rules you must follow:
+- Choose ONLY from the exact career names listed above. Never invent one.
+- Return exactly {RESULTS_RETURNED} careers, best fit first.
+- "fit" is your judgement of suitability from 0.0 to 1.0.
+- "reasoning" is ONE sentence, addressed to the student as "you", naming the
+  specific evidence behind the placement. No flattery, no hedging.
+
+Return ONLY this JSON object:
+{{"ranked": [{{"career": "exact name", "fit": 0.0, "reasoning": "one sentence"}}]}}
+"""
+
+    data = llm_json(prompt, temperature=0.0)
+    if not data or not isinstance(data.get("ranked"), list):
+        return taxonomy_only("LLM returned no usable ranking")
+
+    tax_by_name = {c["career"]: c for c in shortlist}
+    merged, seen = [], set()
+
+    for item in data["ranked"]:
+        name = (item or {}).get("career")
+        # Silently drop anything invented or repeated — the taxonomy fills the gap.
+        if name not in allowed or name in seen:
+            continue
+        seen.add(name)
+        try:
+            llm_fit = max(0.0, min(1.0, float(item.get("fit", 0.5))))
+        except (ValueError, TypeError):
+            llm_fit = 0.5
+        tax_score = tax_by_name[name]["compatibility"] / 100
+        merged.append({
+            "cluster_id": name,
+            "confidence": round(TAXONOMY_WEIGHT * tax_score + LLM_WEIGHT * llm_fit, 4),
+            "taxonomy_score": round(tax_score, 4),
+            "llm_score": round(llm_fit, 4),
+            "reasoning": (item.get("reasoning") or None),
+        })
+
+    if not merged:
+        return taxonomy_only("LLM named no valid careers")
+
+    # Backfill from taxonomy order if the LLM returned too few.
+    for c in shortlist:
+        if len(merged) >= RESULTS_RETURNED:
+            break
+        if c["career"] in seen:
+            continue
+        tax_score = c["compatibility"] / 100
+        merged.append({
+            "cluster_id": c["career"],
+            "confidence": round(TAXONOMY_WEIGHT * tax_score, 4),
+            "taxonomy_score": round(tax_score, 4),
+            "llm_score": None,
+            "reasoning": None,
+        })
+        seen.add(c["career"])
+
+    merged.sort(key=lambda x: -x["confidence"])
+    return {
+        "ranked_clusters": merged[:RESULTS_RETURNED],
+        "model_version": "taxonomy_v2+llm",
+        "engine": "llm_reranked",
+        "note": None,
+    }
+
+
+def career_label(cluster_id: str) -> str:
+    """
+    Careers now arrive as display names from the taxonomy ("UX/UI Design",
+    "Medicine (MBBS)"), not snake_case ids. Title-casing those mangles them
+    into "Ux/Ui Design", so only reformat when it actually looks snake_case.
+    """
+    return cluster_id.replace("_", " ").title() if "_" in cluster_id else cluster_id
+
 
 @app.post("/score")
 def score(request: ScoreRequest):
     fallback_response = {dim: 0.5 for dim in request.rubric}
     
-    if not gemini_client:
-        return fallback_response
-
     prompt = f"""
     You are an AI scoring engine. 
     Activity: {request.activity_id}
@@ -131,52 +286,41 @@ def score(request: ScoreRequest):
     Return ONLY a valid JSON object where keys are the rubric dimensions and values are the numeric scores.
     """
     
-    # Try calling Gemini with 1 retry on invalid output
-    for attempt in range(2):
+    # Rubric scoring must be reproducible, so temperature stays at 0.
+    scores = llm_json(prompt, temperature=0.0)
+    if scores is None:
+        return fallback_response
+
+    # Clamp whatever came back into the rubric's shape — a missing or
+    # nonsensical dimension falls back to neutral rather than failing.
+    final_scores = {}
+    for dim in request.rubric:
+        val = scores.get(dim, 0.5)
         try:
-            response = gemini_client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                ),
-            )
-            scores = json.loads(response.text)
-            
-            # Validate output matches rubric
-            final_scores = {}
-            for dim in request.rubric:
-                val = scores.get(dim, 0.5)
-                try:
-                    val = float(val)
-                    val = max(0.0, min(1.0, val))
-                except (ValueError, TypeError):
-                    val = 0.5
-                final_scores[dim] = round(val, 2)
-                
-            return final_scores
-        except Exception as e:
-            print(f"Gemini score attempt {attempt+1} failed: {e}")
-            
-    return fallback_response
+            val = max(0.0, min(1.0, float(val)))
+        except (ValueError, TypeError):
+            val = 0.5
+        final_scores[dim] = round(val, 2)
+
+    return final_scores
 
 @app.post("/explain")
 def explain(request: ExplainRequest):
     fallback_explanations = {}
     for cluster in request.ranked_clusters:
         fallback_explanations[cluster.cluster_id] = (
-            f"Your trait profile aligns with {cluster.cluster_id.replace('_', ' ').title()} "
+            f"Your trait profile aligns with {career_label(cluster.cluster_id)} "
             f"with a model confidence of {round(cluster.confidence * 100)}%. "
             f"This field matches the combination of interests, cognitive strengths, and behavioral tendencies you demonstrated."
         )
     fallback = ExplainResponse(explanations=fallback_explanations)
 
-    if not gemini_client:
+    if not groq_client:
         return fallback
 
     # Build a richly structured prompt from the numeric data
     cluster_lines = "\n".join(
-        [f"  - {c.cluster_id.replace('_', ' ').title()}: {round(c.confidence * 100, 1)}% model confidence"
+        [f"  - {career_label(c.cluster_id)}: {round(c.confidence * 100, 1)}% match"
          for c in request.ranked_clusters]
     )
 
@@ -200,13 +344,13 @@ def explain(request: ExplainRequest):
 
     prompt = f"""You are a senior career counselor and psychometrician for Pehchaan, a career-discovery platform for Pakistani students aged 14–24.
 
-A student has just completed a comprehensive, multi-stage behavioral and cognitive assessment. Below are their results from the RandomForest ML model, trained on RIASEC psychometric theory. Your task is to write a detailed, warm, and genuinely insightful career analysis FOR THIS SPECIFIC STUDENT based purely on the numeric data below.
+A student has just completed a comprehensive, multi-stage behavioral and cognitive assessment. Below are their measured scores, matched against O*NET occupational profiles. Your task is to write a detailed, warm, and genuinely insightful career analysis FOR THIS SPECIFIC STUDENT based purely on the numeric data below.
 
 ---
 STUDENT PROFILE
 Age Band: {request.age_band}{riasec_lines}{big_five_lines}
 
-ML CAREER PREDICTIONS (RandomForest model, confidence scores):
+CAREER MATCHES (O*NET profile match, reviewed in context, with confidence scores):
 {cluster_lines}
 
 ---
@@ -242,17 +386,12 @@ CRITICAL: Return ONLY a valid JSON object in this exact schema:
 The career_cluster_id keys must EXACTLY match these: {[c.cluster_id for c in request.ranked_clusters]}
 """
 
-    try:
-        response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.7,
-            ),
-        )
-        data = json.loads(response.text)
+    # Prose, not a decision — a little warmth is fine here.
+    data = llm_json(prompt, temperature=0.7)
+    if data is None:
+        return fallback
 
+    try:
         # Validate and fill any missing keys with fallback
         final_explanations = {}
         for cluster in request.ranked_clusters:
@@ -266,7 +405,7 @@ The career_cluster_id keys must EXACTLY match these: {[c.cluster_id for c in req
         }
 
     except Exception as e:
-        print(f"Gemini explain failed: {e}")
+        print(f"explain post-processing failed: {e}")
         return fallback
 
 # --- PHASE 1 PIVOT: Behavioral Telemetry & Cold-Start Recommendation Engine ---
@@ -396,7 +535,7 @@ def comprehensive_explain(request: ComprehensiveExplainRequest):
         "uncertainty": "We still need more data on your other skills to be absolutely sure."
     }
     
-    if not gemini_client:
+    if not groq_client:
         return fallback_response
 
     prompt = f"""
@@ -423,19 +562,8 @@ def comprehensive_explain(request: ComprehensiveExplainRequest):
     }}
     """
     
-    try:
-        response = gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-            ),
-        )
-        data = json.loads(response.text)
-        return data
-    except Exception as e:
-        print(f"Gemini comprehensive explain failed: {e}")
-        return fallback_response
+    data = llm_json(prompt, temperature=0.7)
+    return data if data is not None else fallback_response
 
 if __name__ == "__main__":
     import uvicorn

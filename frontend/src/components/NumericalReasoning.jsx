@@ -4,19 +4,36 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Timer } from 'lucide-react'
+import { randInt, pick } from '../utils/randomize'
 
-const QUESTIONS = [
-  { q: "17 + 28", a: 45 },
-  { q: "84 - 39", a: 45 },
-  { q: "15 × 6", a: 90 },
-  { q: "144 ÷ 12", a: 12 },
-  { q: "30% of 250", a: 75 }
+// One generator per operation, in the order they're served. Difficulty comes
+// from the operation, so the order is fixed and only the numbers vary.
+// Every generator yields a whole-number answer — no decimals to round.
+const GENERATORS = [
+  // two-digit addition, forced to carry
+  () => { const a = randInt(17, 68), b = randInt(24, 79); return { q: `${a} + ${b}`, a: a + b } },
+  // two-digit subtraction, forced to borrow, never negative
+  () => { const a = randInt(52, 96), b = randInt(17, 48); return { q: `${a} - ${b}`, a: a - b } },
+  // times table beyond the easy rows
+  () => { const a = randInt(12, 19), b = randInt(4, 9); return { q: `${a} × ${b}`, a: a * b } },
+  // division that always divides cleanly
+  () => { const b = randInt(6, 12), r = randInt(7, 15); return { q: `${b * r} ÷ ${b}`, a: r } },
+  // percentage chosen so the result is always whole
+  () => { const p = pick([10, 20, 25, 30, 40, 50, 60, 75]), base = randInt(2, 12) * 20
+          return { q: `${p}% of ${base}`, a: (base * p) / 100 } },
 ]
+
+function buildQuestions() {
+  return GENERATORS.map(gen => gen())
+}
 
 export default function NumericalReasoning() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
-  
+
+  // Generated once per mount, so the sum can't change mid-answer.
+  const [QUESTIONS] = useState(buildQuestions)
+
   const [current, setCurrent] = useState(0)
   const [input, setInput] = useState('')
   const [startTs, setStartTs] = useState(Date.now())

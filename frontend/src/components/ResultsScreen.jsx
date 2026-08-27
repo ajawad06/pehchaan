@@ -38,7 +38,7 @@ export default function ResultsScreen() {
         const API_URL = rawUrl.endsWith('/') ? rawUrl.slice(0, -1) : rawUrl;
         
         // ─── Step 1: Build the 12-feature trait vector (all 0–1) ───
-        // Activities store values in 0–100; RF model was trained on 0–1 → divide by 100
+        // Activities store values in 0–100; the taxonomy engine works in 0–1 → divide by 100
         const traitVector = {
           R: traits.R || 0,
           I: traits.I || 0,
@@ -54,68 +54,53 @@ export default function ResultsScreen() {
           domain_exposure: (traits.domain_exposure || 0) / 100,
         }
         
-        let ranked_clusters = null
-        let model_version = null
-        
-        // ─── Step 2: Try /predict (real RF model) first ───
-        try {
-          const predRes = await fetch(`${API_URL}/predict`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ trait_vector: traitVector })
-          })
-          
-          if (predRes.ok) {
-            const predData = await predRes.json()
-            ranked_clusters = predData.ranked_clusters
-            model_version = predData.model_version
-          }
-        } catch (predErr) {
-          console.warn('RF /predict failed, falling back to taxonomy engine:', predErr)
-        }
-        
-        // ─── Step 3: Fallback to /recommend_careers (cold-start taxonomy) ───
-        if (!ranked_clusters) {
-          const profile = {
-            user_id: sessionId || "anonymous",
-            interests: traits.interests || { "technology": 0.5 },
+        // ─── Step 2: Rank via /rank ───
+        // One call. The backend scores all 21 careers with the deterministic
+        // O*NET taxonomy, then has the LLM re-rank that shortlist in context.
+        // If the LLM is unavailable it returns the taxonomy order instead, so
+        // this never needs a fallback branch on the client.
+        const rankRes = await fetch(`${API_URL}/rank`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            trait_vector: traitVector,
             abilities: {
               numerical_reasoning: traitVector.numerical_reasoning,
               analytical_thinking: traitVector.analytical_thinking,
               creativity: traitVector.creativity,
+              communication: traitVector.communication,
               logical_reasoning: (traits.logical_reasoning || 0) / 100,
               spatial_reasoning: (traits.spatial_reasoning || 0) / 100,
+              memory: (traits.working_memory || 0) / 100,
+              attention_to_detail: (traits.attention_to_detail || 0) / 100,
+              learning_agility: (traits.learning_agility || 0) / 100,
+              persistence: (traits.persistence || 0) / 100,
+              empathy: (traits.empathy || 0) / 100,
+              verbal_reasoning: (traits.verbal_reasoning || 0) / 100,
+              leadership: (traits.leadership || 0) / 100,
             },
-            career_values: traits.career_values || []
-          }
-          
-          const recRes = await fetch(`${API_URL}/recommend_careers`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(profile)
+            interests: traits.interests || {},
+            career_values: traits.career_values || [],
+            age_band: traits.age_group || '16-17',
           })
-          
-          if (!recRes.ok) {
-            const errText = await recRes.text()
-            throw new Error(`Failed to fetch recommendations: ${errText} (Using API: ${API_URL})`)
-          }
-          
-          const recData = await recRes.json()
-          // Reshape taxonomy output to match /predict shape
-          ranked_clusters = recData.recommendations.map(r => ({
-            cluster_id: r.career,
-            confidence: r.compatibility / 100
-          }))
-          model_version = 'cold_start_v1'
+        })
+
+        if (!rankRes.ok) {
+          const errText = await rankRes.text()
+          throw new Error(`Failed to fetch recommendations: ${errText} (Using API: ${API_URL})`)
         }
-        
+
+        const rankData = await rankRes.json()
+        const ranked_clusters = rankData.ranked_clusters
+        const model_version = rankData.model_version
+
         setRecommendations(ranked_clusters)
         
         if (sessionId) {
           await saveRecommendations(sessionId, ranked_clusters, model_version)
         }
 
-        // ─── Step 4: Get Gemini narrative via /explain ───
+        // ─── Step 3: Narrative prose via /explain ───
         try {
           const expRes = await fetch(`${API_URL}/explain`, {
             method: 'POST',
@@ -124,7 +109,7 @@ export default function ResultsScreen() {
               ranked_clusters: ranked_clusters,
               language: 'en',
               age_band: traits.age_group || '15-17',
-              // Pass full numeric context so Gemini can write specific analysis
+              // Pass full numeric context so the LLM can write specific analysis
               trait_vector: {
                 R: traits.R || 0,
                 I: traits.I || 0,
@@ -191,7 +176,7 @@ export default function ResultsScreen() {
           </div>
           <div className="text-center space-y-1 px-4">
             <p className="text-green-dark font-semibold text-lg">Running your AI analysis...</p>
-            <p className="text-text-muted text-sm font-light">Your RandomForest model is predicting career clusters. Gemini is writing your personalized report.</p>
+            <p className="text-text-muted text-sm font-light">Matching your profile against 21 career paths, then writing up what the evidence shows.</p>
           </div>
         </div>
       )}
@@ -212,7 +197,7 @@ export default function ResultsScreen() {
           className="w-full max-w-6xl space-y-10"
         >
 
-          {/* ── Gemini Overall Analysis Banner ── */}
+          {/* ── Overall Analysis Banner ── */}
           {comprehensiveData?.overall_analysis && (
             <motion.div
               initial={reduceMotion ? {} : { opacity: 0, y: -10 }} animate={reduceMotion ? {} : { opacity: 1, y: 0 }}
@@ -360,7 +345,7 @@ export default function ResultsScreen() {
                         <h4 className={`text-lg sm:text-2xl font-semibold capitalize break-words ${idx === 0 ? 'text-ivory' : 'text-green-dark'}`}>
                           {rec.cluster_id.replace(/_/g, ' ')}
                         </h4>
-                        <p className={`text-xs sm:text-sm mt-1 ${idx === 0 ? 'text-sage' : 'text-text-muted'}`}>ML Confidence · RandomForest rf_v2</p>
+                        <p className={`text-xs sm:text-sm mt-1 ${idx === 0 ? 'text-sage' : 'text-text-muted'}`}>O*NET match + AI review</p>
                       </div>
                       <div className={`text-2xl sm:text-4xl font-bold shrink-0 ${idx === 0 ? 'text-blush' : 'text-green-primary'}`}>
                         {Math.round(rec.confidence * 100)}%
@@ -376,6 +361,15 @@ export default function ResultsScreen() {
                         transition={{ duration: 1.1, delay: idx * 0.12 + 0.2, ease: [0.22, 1, 0.36, 1] }}
                       />
                     </div>
+
+                    {/* Why this career landed here — the one-line judgement
+                        from the re-ranking step, tied to the student's own
+                        evidence rather than generic prose. */}
+                    {rec.reasoning && (
+                      <p className={`text-sm leading-relaxed relative z-10 font-medium mb-3 ${idx === 0 ? 'text-ivory' : 'text-green-dark'}`}>
+                        {rec.reasoning}
+                      </p>
+                    )}
 
                     {comprehensiveData?.explanations?.[rec.cluster_id] && (
                       <div className={`text-sm leading-relaxed relative z-10 font-light ${idx === 0 ? 'text-ivory/90' : 'text-green-dark/80'}`}>

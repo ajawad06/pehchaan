@@ -4,6 +4,96 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Timer, Lightbulb } from 'lucide-react'
+import { pick } from '../utils/randomize'
+
+// Data challenges — one is served per session. Each has exactly one defensible
+// answer that requires reading the table rather than guessing, and three
+// distractors that sound plausible until you check a column row by row.
+const CHALLENGES = [
+  {
+    columns: [
+      { key: 'month',   label: 'Month' },
+      { key: 'revenue', label: 'Revenue (Rs.)' },
+      { key: 'users',   label: 'Active Users' },
+    ],
+    rows: [
+      { month: 'Jan', revenue: 1200, users: 400 },
+      { month: 'Feb', revenue: 1500, users: 420 },
+      { month: 'Mar', revenue: 1100, users: 450 },
+      { month: 'Apr', revenue: 1800, users: 470 },
+    ],
+    question: "Looking at this startup's data, which statement is definitely true?",
+    options: [
+      "Revenue increases every single month.",
+      "User count is steadily increasing.",
+      "Revenue and users are perfectly correlated.",
+      "March was the most profitable month.",
+    ],
+    answer: "User count is steadily increasing.",
+    hint: "Look closely at the 'users' column row by row. Then check the 'revenue' column for drops.",
+  },
+  {
+    columns: [
+      { key: 'student', label: 'Student' },
+      { key: 'hours',   label: 'Study Hours' },
+      { key: 'score',   label: 'Exam Score' },
+    ],
+    rows: [
+      { student: 'A', hours: 2, score: 55 },
+      { student: 'B', hours: 4, score: 62 },
+      { student: 'C', hours: 6, score: 58 },
+      { student: 'D', hours: 8, score: 71 },
+    ],
+    question: "Which statement does this data actually support?",
+    options: [
+      "More study hours always means a higher score.",
+      "The highest scorer studied the most hours.",
+      "Studying has no effect on scores at all.",
+      "Every extra hour adds about 4 marks.",
+    ],
+    answer: "The highest scorer studied the most hours.",
+    hint: "Find the top score first, then look at that row's hours. Then check whether the trend holds for every row in between.",
+  },
+  {
+    columns: [
+      { key: 'shop',  label: 'Shop' },
+      { key: 'price', label: 'Price (Rs.)' },
+      { key: 'sold',  label: 'Units Sold' },
+    ],
+    rows: [
+      { shop: 'North', price: 50, sold: 300 },
+      { shop: 'South', price: 70, sold: 220 },
+      { shop: 'East',  price: 60, sold: 260 },
+      { shop: 'West',  price: 90, sold: 240 },
+    ],
+    question: "Which shop earned the most total revenue?",
+    options: ["North", "South", "East", "West"],
+    answer: "West",
+    hint: "Total revenue is price × units sold. Work it out for each row before comparing — the cheapest shop is not automatically the biggest earner.",
+  },
+  {
+    columns: [
+      { key: 'day',      label: 'Day' },
+      { key: 'rainfall', label: 'Rainfall (mm)' },
+      { key: 'visitors', label: 'Park Visitors' },
+    ],
+    rows: [
+      { day: 'Mon', rainfall: 0,  visitors: 520 },
+      { day: 'Tue', rainfall: 12, visitors: 210 },
+      { day: 'Wed', rainfall: 0,  visitors: 480 },
+      { day: 'Thu', rainfall: 30, visitors: 260 },
+    ],
+    question: "Which conclusion is best supported by this data?",
+    options: [
+      "Rain always halves the number of visitors.",
+      "Visitor numbers are lower on days with rainfall.",
+      "Thursday was the wettest and least visited day.",
+      "Visitors have nothing to do with rainfall.",
+    ],
+    answer: "Visitor numbers are lower on days with rainfall.",
+    hint: "Split the rows into rainy and dry, then compare the two groups. Watch out for the option that says 'always' and the one that gets Thursday wrong.",
+  },
+]
 
 export default function DataDetective() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
@@ -16,23 +106,10 @@ export default function DataDetective() {
   const [showHint, setShowHint] = useState(false)
   const [wrongAnswers, setWrongAnswers] = useState([])
 
-  // The Data Challenge
-  const dataset = [
-    { month: 'Jan', revenue: 1200, users: 400 },
-    { month: 'Feb', revenue: 1500, users: 420 },
-    { month: 'Mar', revenue: 1100, users: 450 },
-    { month: 'Apr', revenue: 1800, users: 470 }
-  ]
-
-  const question = "Looking at this startup's data, which statement is definitely true?"
-  const options = [
-    "Revenue increases every single month.",
-    "User count is steadily increasing.",
-    "Revenue and users are perfectly correlated.",
-    "March was the most profitable month."
-  ]
-  const answer = "User count is steadily increasing."
-  const hint = "Look closely at the 'users' column row by row. Then check the 'revenue' column for drops."
+  // One data challenge drawn per mount. Each carries its own columns so the
+  // table renders generically rather than assuming month/revenue/users.
+  const [challenge] = useState(() => pick(CHALLENGES))
+  const { columns, rows: dataset, question, options, answer, hint } = challenge
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -160,17 +237,24 @@ export default function DataDetective() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-green-primary/5 text-green-secondary text-sm tracking-wide uppercase">
-                <th className="p-4 border-b border-border-glass font-medium">Month</th>
-                <th className="p-4 border-b border-border-glass font-medium">Revenue (Rs.)</th>
-                <th className="p-4 border-b border-border-glass font-medium">Active Users</th>
+                {columns.map(col => (
+                  <th key={col.key} className="p-4 border-b border-border-glass font-medium">{col.label}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {dataset.map((row, i) => (
                 <tr key={i} className="border-b border-border-glass last:border-0 hover:bg-green-primary/5 transition-colors">
-                  <td className="p-4 text-green-dark">{row.month}</td>
-                  <td className="p-4 text-green-dark font-mono font-medium">{row.revenue}</td>
-                  <td className="p-4 text-green-dark font-mono font-medium">{row.users}</td>
+                  {columns.map((col, ci) => (
+                    <td
+                      key={col.key}
+                      className={ci === 0
+                        ? "p-4 text-green-dark"
+                        : "p-4 text-green-dark font-mono font-medium tabular-nums"}
+                    >
+                      {row[col.key]}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>

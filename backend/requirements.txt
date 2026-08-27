@@ -1,8 +1,5 @@
 fastapi
 uvicorn
-scikit-learn
-pandas
-joblib
-google-genai
-firebase-admin
 pydantic
+groq
+firebase-admin

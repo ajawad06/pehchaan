@@ -41,7 +41,7 @@ export default function EmpathyScenario() {
     if (text.length < 60) return
     setIsSubmitting(true)
 
-    // Write local defaults unconditionally — never block on Gemini latency
+    // Write local defaults unconditionally — never block on LLM latency
     // ALL scores on 0-100 scale to match Cognitive Profile display
     const wordCount = text.trim().split(/\s+/).filter(Boolean).length
     const hasSentences = (text.match(/[.!?]/g) || []).length
@@ -62,7 +62,7 @@ export default function EmpathyScenario() {
       attention_to_detail: Math.max(traits.attention_to_detail || 0, persistenceProxy),
     })
 
-    // Fire-and-forget Gemini scoring
+    // Fire-and-forget LLM scoring
     ;(async () => {
       try {
         const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
@@ -77,7 +77,7 @@ export default function EmpathyScenario() {
           }),
         })
         const scores = await response.json()
-        // Gemini returns 0-1 — convert to 0-100 and use Math.max
+        // The scorer returns 0-1 — convert to 0-100 and use Math.max
         const scaled = {}
         Object.entries(scores).forEach(([key, val]) => {
           const asPercent = Math.round((typeof val === 'number' ? val : 0.5) * 100)
@@ -94,7 +94,7 @@ export default function EmpathyScenario() {
           await updateSessionProgress(sessionId, 'empathy_scenario')
         }
       } catch (e) {
-        console.warn('EmpathyScenario Gemini scoring failed silently:', e)
+        console.warn('EmpathyScenario LLM scoring failed silently:', e)
       }
     })()
 

@@ -4,24 +4,65 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Timer, Lightbulb } from 'lucide-react'
+import { sampleBalanced } from '../utils/randomize'
 
-const QUESTIONS = [
-  { 
-    id: 1, 
-    type: "numerical_reasoning", 
-    text: "Identify the missing element in the sequence: 2, 6, 12, 20, 30, ?", 
-    options: ["40", "42", "44", "48"], 
+// Item bank — three per reasoning type. Exactly one of each type is served per
+// session, because `type` is the trait each answer writes to: drop a type and
+// that trait never gets measured.
+const ITEM_BANK = [
+  // ── numerical_reasoning ──────────────────────────────────────────────
+  {
+    id: 1,
+    type: "numerical_reasoning",
+    text: "Identify the missing element in the sequence: 2, 6, 12, 20, 30, ?",
+    options: ["40", "42", "44", "48"],
     answer: "42",
     hint: "Look at the differences between consecutive numbers. How are the differences themselves changing?"
   },
-  { 
-    id: 2, 
-    type: "logical_reasoning", 
-    text: "If C = 3, F = 6, and I = 9, what is the value of P + D?", 
-    options: ["18", "20", "22", "24"], 
+  {
+    id: 5,
+    type: "numerical_reasoning",
+    text: "What comes next: 3, 6, 12, 24, 48, ?",
+    options: ["72", "84", "96", "108"],
+    answer: "96",
+    hint: "Each step does the same thing to the previous number. What single operation gets you from 3 to 6, and 6 to 12?"
+  },
+  {
+    id: 6,
+    type: "numerical_reasoning",
+    text: "A shirt costs Rs. 800 after a 20% discount. What was the original price?",
+    options: ["Rs. 960", "Rs. 1000", "Rs. 1020", "Rs. 1600"],
+    answer: "Rs. 1000",
+    hint: "Rs. 800 is not 80% off — it is what remains after 20% was removed."
+  },
+
+  // ── logical_reasoning ────────────────────────────────────────────────
+  {
+    id: 2,
+    type: "logical_reasoning",
+    text: "If C = 3, F = 6, and I = 9, what is the value of P + D?",
+    options: ["18", "20", "22", "24"],
     answer: "20",
     hint: "Map each letter to its position in the alphabet (A=1, B=2...)."
   },
+  {
+    id: 7,
+    type: "logical_reasoning",
+    text: "All engineers can code. Sara can code. Which statement must be true?",
+    options: ["Sara is an engineer", "Sara is not an engineer", "Some coders are engineers", "All coders are engineers"],
+    answer: "Some coders are engineers",
+    hint: "The first sentence tells you about every engineer, but nothing about every coder."
+  },
+  {
+    id: 8,
+    type: "logical_reasoning",
+    text: "Five runners finish a race. Ali beat Bilal. Cina finished last. Bilal beat Danish. Who cannot be first?",
+    options: ["Ali", "Bilal", "Danish", "Both Bilal and Danish"],
+    answer: "Both Bilal and Danish",
+    hint: "Anyone who was beaten by someone else cannot have finished first."
+  },
+
+  // ── pattern_recognition ──────────────────────────────────────────────
   {
     id: 3,
     type: "pattern_recognition",
@@ -31,19 +72,57 @@ const QUESTIONS = [
     hint: "Don't think of them as hundreds and tens. Look at the individual digits."
   },
   {
+    id: 9,
+    type: "pattern_recognition",
+    text: "If RED becomes SFE, what does BLUE become?",
+    options: ["CMVF", "CMWF", "AKTD", "CNVF"],
+    answer: "CMVF",
+    hint: "Compare each letter with the one that replaced it. How far did it move?"
+  },
+  {
+    id: 10,
+    type: "pattern_recognition",
+    text: "The pattern goes 1, 1, 2, 3, 5, 8, 13, ? — what comes next?",
+    options: ["18", "20", "21", "26"],
+    answer: "21",
+    hint: "Each number is built from the two before it."
+  },
+
+  // ── spatial_reasoning ────────────────────────────────────────────────
+  {
     id: 4,
     type: "spatial_reasoning",
     text: "Which of the following logically completes this sequence? ▲ ● ▲ ● ■ ▲ ● ▲ ● ■ ■ ?",
     options: ["▲", "●", "■", "None"],
     answer: "▲",
     hint: "Break the sequence into smaller repeating groups. Notice how the groups grow."
+  },
+  {
+    id: 11,
+    type: "spatial_reasoning",
+    text: "A cube is painted on all six faces, then cut into 27 smaller cubes. How many have exactly one painted face?",
+    options: ["4", "6", "8", "12"],
+    answer: "6",
+    hint: "A small cube with one painted face must have come from the middle of a face, not an edge or corner."
+  },
+  {
+    id: 12,
+    type: "spatial_reasoning",
+    text: "You face north, turn 90° right, then 180°, then 90° right again. Which way are you facing?",
+    options: ["North", "South", "East", "West"],
+    answer: "North",
+    hint: "Track the turns one at a time. Right from north is east."
   }
 ]
 
 export default function PatternHunter() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
-  
+
+  // One item per reasoning type, drawn once per mount — every trait this
+  // activity feeds still gets exactly one measurement.
+  const [QUESTIONS] = useState(() => sampleBalanced(ITEM_BANK, q => q.type, 1))
+
   const [current, setCurrent] = useState(0)
   const [startTs, setStartTs] = useState(Date.now())
   const [timeElapsed, setTimeElapsed] = useState(0)

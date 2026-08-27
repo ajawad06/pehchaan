@@ -44,7 +44,7 @@ export default function NarrativeBuilder() {
     if (text.length < 50) return
     setIsSubmitting(true)
 
-    // Write local defaults unconditionally — never block on Gemini latency
+    // Write local defaults unconditionally — never block on LLM latency
     // ALL scores on 0-100 scale to match Cognitive Profile display
     const wordCount = text.trim().split(/\s+/).filter(Boolean).length
     updateTraits({
@@ -53,7 +53,7 @@ export default function NarrativeBuilder() {
       creativity:       Math.max(traits.creativity || 0, Math.round(Math.min(100, (wordCount / 100) * 100))),
     })
 
-    // Fire-and-forget Gemini scoring
+    // Fire-and-forget LLM scoring
     ;(async () => {
       try {
         const rawUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
@@ -68,7 +68,7 @@ export default function NarrativeBuilder() {
           }),
         })
         const scores = await response.json()
-        // Gemini returns 0-1 — convert to 0-100 and Math.max to preserve higher
+        // The scorer returns 0-1 — convert to 0-100 and Math.max to preserve higher
         const scaled = {}
         Object.entries(scores).forEach(([key, val]) => {
           const asPercent = Math.round((typeof val === 'number' ? val : 0.5) * 100)
@@ -84,7 +84,7 @@ export default function NarrativeBuilder() {
           await updateSessionProgress(sessionId, 'narrative_builder')
         }
       } catch (e) {
-        console.warn('NarrativeBuilder Gemini scoring failed silently:', e)
+        console.warn('NarrativeBuilder LLM scoring failed silently:', e)
       }
     })()
 

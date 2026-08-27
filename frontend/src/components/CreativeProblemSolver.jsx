@@ -4,9 +4,25 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse, updateSessionProgress } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import { pick } from '../utils/randomize'
+
+// Open design problems — one per session. Each asks the student to invent a
+// system and justify it, so all four rubric dimensions (creativity,
+// flexibility, communication, originality) apply equally to any of them.
+const PROBLEMS = [
+  'Imagine you are designing a new sustainable city. What unique transportation system would you create? Describe how it works and why people would use it.',
+  'Students in your school keep missing assignment deadlines. Design something — a tool, a rule, a routine — that would actually fix it. Explain how it works and why people would stick to it.',
+  'A neighbourhood loses electricity for six hours every evening. Design a way for students there to keep studying. Explain how it works and what it would cost.',
+  'Public buses in your city are always overcrowded at exactly the same two hours. Design a change that spreads the load. Explain how it works and why people would accept it.',
+  'A village has one doctor for four thousand people. Design a system that gets basic care to everyone anyway. Explain how it works and who runs it.',
+  'Clean drinking water is available but people still fall ill from storing it badly. Design something that fixes the storage problem. Explain how it works and why people would use it.',
+]
 
 export default function CreativeProblemSolver() {
   const { sessionId, updateTraits, advanceFlow } = useSession()
+  // One problem drawn per mount.
+  const [PROBLEM] = useState(() => pick(PROBLEMS))
+
   const [text, setText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
@@ -65,7 +81,7 @@ export default function CreativeProblemSolver() {
       >
         <h2 className="font-playful text-xl sm:text-3xl font-extrabold tracking-tight mb-6">Creative Problem Solver</h2>
         <p className="text-lg mb-10 text-center text-text-muted font-light leading-relaxed">
-          Imagine you are designing a new sustainable city. What unique transportation system would you create? Describe how it works and why people would use it.
+          {PROBLEM}
         </p>
         
         <textarea 

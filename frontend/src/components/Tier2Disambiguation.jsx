@@ -4,6 +4,7 @@ import { useSession } from '../store/SessionContext'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { recordResponse } from '../services/db'
 import { Sparkles, Stethoscope, BarChart3, Drama, Scale, Cog, ArrowLeft, Check } from 'lucide-react'
+import { shuffle } from '../utils/randomize'
 
 // Cluster icon keys map to lucide components (replaces the retired PixelIcon set)
 const CLUSTER_ICONS = {
@@ -319,13 +320,21 @@ export default function Tier2Disambiguation() {
   const clusterKey = searchParams.get('cluster') || location.state?.cluster || 'technology'
   const cluster = CLUSTERS[clusterKey] || CLUSTERS.technology
 
+  // Same three questions, but a different order each session, and the choices
+  // shuffled within each — so a returning student can't answer from the
+  // position of the option they picked last time. Each choice carries its own
+  // trait weights, so reordering changes nothing about scoring.
+  const [questions] = useState(() =>
+    shuffle(cluster.questions).map(q => ({ ...q, choices: shuffle(q.choices) }))
+  )
+
   const [current, setCurrent] = useState(0)
   const [selected, setSelected] = useState(null)
   const [done, setDone] = useState(false)
   // Accumulate: { traitKey: [val, val, ...] } — averaged at the end
   const [accum, setAccum] = useState({})
 
-  const totalQ = cluster.questions.length
+  const totalQ = questions.length
   const progress = (current / totalQ) * 100
 
   const handleChoice = (choice) => {
@@ -372,7 +381,7 @@ export default function Tier2Disambiguation() {
     navigate('/results', { state: { refined: true, cluster: clusterKey } })
   }
 
-  const q = cluster.questions[current]
+  const q = questions[current]
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-ivory text-green-dark pt-24 px-6 pb-6 relative overflow-hidden">

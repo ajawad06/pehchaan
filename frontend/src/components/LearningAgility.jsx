@@ -4,24 +4,48 @@ import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import { randInt } from '../utils/randomize'
 
-const QUESTIONS = [
-  // Phase 1 (Base Rules)
-  { p: 1, base: 5, ops: ['▲'], text: '5 ▲', ans: 8 },
-  { p: 1, base: 4, ops: ['●'], text: '4 ●', ans: 8 },
-  { p: 1, base: 10, ops: ['■'], text: '10 ■', ans: 6 },
-  { p: 1, base: 3, ops: ['▲', '●'], text: '3 ▲ ●', ans: 12 }, // (3+3)*2
-  // Phase 2 (New Rule introduced: ★ = Square it)
-  { p: 2, base: 3, ops: ['★'], text: '3 ★', ans: 9 },
-  { p: 2, base: 2, ops: ['▲', '★'], text: '2 ▲ ★', ans: 25 }, // (2+3)^2 = 25
-  { p: 2, base: 5, ops: ['★', '■'], text: '5 ★ ■', ans: 21 }, // (5^2)-4 = 21
-]
+// Symbol rules the student has to infer: ▲ = +3, ● = ×2, ■ = −4, ★ = square.
+// Operators apply left to right.
+//
+// The shape of this list is load-bearing: four phase-1 items then three
+// phase-2 items, with the star rule introduced at index 3→4. Only the numbers
+// are randomised — the teaching sequence stays identical every session.
+function buildQuestions() {
+  // ■ subtracts 4, so any base it touches must stay above it to avoid
+  // negative answers; ★ squares, so its bases stay small to keep the
+  // arithmetic mental rather than tedious.
+  const b = {
+    add:      randInt(4, 9),    // n ▲
+    times:    randInt(3, 9),    // n ●
+    minus:    randInt(9, 16),   // n ■
+    addTimes: randInt(2, 7),    // n ▲ ●
+    square:   randInt(3, 7),    // n ★
+    addSq:    randInt(2, 5),    // n ▲ ★
+    sqMinus:  randInt(3, 6),    // n ★ ■
+  }
+  return [
+    // Phase 1 — the three base rules, then a two-step combination
+    { p: 1, text: `${b.add} ▲`,        ans: b.add + 3 },
+    { p: 1, text: `${b.times} ●`,      ans: b.times * 2 },
+    { p: 1, text: `${b.minus} ■`,      ans: b.minus - 4 },
+    { p: 1, text: `${b.addTimes} ▲ ●`, ans: (b.addTimes + 3) * 2 },
+    // Phase 2 — ★ is introduced, then combined with the earlier rules
+    { p: 2, text: `${b.square} ★`,     ans: b.square ** 2 },
+    { p: 2, text: `${b.addSq} ▲ ★`,    ans: (b.addSq + 3) ** 2 },
+    { p: 2, text: `${b.sqMinus} ★ ■`,  ans: b.sqMinus ** 2 - 4 },
+  ]
+}
 
 export default function LearningAgility() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
   const reduceMotion = useReducedMotion()
-  
+
+  // Generated once per mount, so the numbers hold still while answering.
+  const [QUESTIONS] = useState(buildQuestions)
+
   const [current, setCurrent] = useState(0)
   const [phase, setPhase] = useState('intro1') // intro1 -> practice -> intro2 -> test -> result
   const [input, setInput] = useState('')

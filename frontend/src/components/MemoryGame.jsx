@@ -4,19 +4,36 @@ import { ArrowLeft } from 'lucide-react'
 import { useSession } from '../store/SessionContext'
 import { recordResponse } from '../services/db'
 import { useNavigate } from 'react-router-dom'
+import { pick } from '../utils/randomize'
 
-const SEQUENCES = [
-  ['7', 'K', '3'],
-  ['B', '9', 'R', '2'],
-  ['4', 'M', '8', 'P', '1'],
-  ['T', '5', 'L', '9', 'C', '3']
-]
+// Visually unambiguous glyphs only — no O/0, I/1/L, S/5, B/8 confusions, since
+// a misread character would score as a memory failure that never happened.
+const GLYPHS = 'ACDEFHJKMNPRTUWXY2346789'.split('')
+
+const SEQUENCE_LENGTHS = [3, 4, 5, 6]
+
+// Fresh sequences every session. The 3→6 ramp is what the difficulty curve
+// depends on, so lengths stay fixed while the contents vary.
+function buildSequences() {
+  return SEQUENCE_LENGTHS.map(len => {
+    const seq = []
+    while (seq.length < len) {
+      const g = pick(GLYPHS)
+      if (!seq.includes(g)) seq.push(g)   // no repeats within one sequence
+    }
+    return seq
+  })
+}
 
 export default function MemoryGame() {
   const { sessionId, updateTraits, traits, advanceFlow } = useSession()
   const navigate = useNavigate()
   const reduceMotion = useReducedMotion()
-  
+
+  // Built once per mount — never on render, or the sequence would change
+  // while the student is looking at it.
+  const [SEQUENCES] = useState(buildSequences)
+
   const [level, setLevel] = useState(0)
   const [phase, setPhase] = useState('ready') // ready -> showing -> recalling -> result
   const [input, setInput] = useState('')
